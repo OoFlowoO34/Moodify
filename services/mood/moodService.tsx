@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { Alert } from 'react-native';
-const API_URL = __DEV__ ? 'https://developpement.tech/moodify' : 'https://my-json-server.typicode.com/OoFlowoO34/mockjson';
+const API_URL = __DEV__ ? 'https://dm-developpement.fr/moodify' : 'https://my-json-server.typicode.com/OoFlowoO34/mockjson';
 
 // Récupérer un token d'accès Spotify
 export async function getMusicListByMood2(selectedMood: string){
@@ -161,7 +161,7 @@ export async function sendPhoto(photoUri: string) {
 
     console.log('FormData prêt, envoi de la requête...');
 
-    const response = await fetch(`https://developpement.tech/moodify/data`, {
+    const response = await fetch(`${API_URL}/data`, {
       method: 'POST',
       body: formData,
       // Ne PAS mettre de Content-Type → fetch le gère pour multipart/form-data

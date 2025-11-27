@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 
 // URL de l'API backend (à configurer selon votre environnement)
-const API_URL = __DEV__ ? 'https://developpement.tech/moodify' : 'https://my-json-server.typicode.com/OoFlowoO34/mockjson';
+const API_URL = __DEV__ ? 'https://dm-developpement.fr/moodify' : 'https://my-json-server.typicode.com/OoFlowoO34/mockjson';
 
 // Service pour gérer les appels d'API liés à l'authentification
 export const authService = {
