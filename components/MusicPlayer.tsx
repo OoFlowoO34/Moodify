@@ -100,17 +100,17 @@ const styles = StyleSheet.create({
     color: '#ffffff', // Texte blanc sur fond bleu
     fontSize: 17, // Légèrement augmenté
     fontWeight: 'bold',
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
+    // textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    // textShadowOffset: { width: 1, height: 1 },
+    // textShadowRadius: 3,
   },
   noTrackSubtext: {
     color: '#e6f7ff', // Blanc légèrement teinté
     fontSize: 13, // Légèrement augmenté
     marginTop: 6, // Augmenté de 4 à 6
-    textShadowColor: 'rgba(0, 0, 0, 0.6)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    // textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    // textShadowOffset: { width: 1, height: 1 },
+    // textShadowRadius: 2,
   },
   // État avec musique sélectionnée
   trackInfo: {

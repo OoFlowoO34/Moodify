@@ -11,7 +11,8 @@ export const authService = {
   // Connexion utilisateur
   async login(email: string, password: string) {
     try {
-      router.replace("/(tabs)/camera"); 
+      console.log('login email:', email);
+      console.log('login mdp:', password)
       // Appel à votre API backend qui gèrera l'authentification Firebase
       const response = await axios.post(`${API_URL}/login`, {
         username: email,
@@ -26,8 +27,8 @@ export const authService = {
         router.replace("/(tabs)/camera");
       }
       else {
-        await AsyncStorage.setItem('auth_token', "token"); 
-        router.replace("/(tabs)/camera"); 
+        await AsyncStorage.setItem('auth_token', ""); 
+        router.replace("/(auth)/entry"); 
       }
       
     } catch (error) {
@@ -63,12 +64,12 @@ export const authService = {
 
     async forgottenPassword(email: string) {
       try {
-        console.log('createAccount email:', email);
+        console.log('forgottenPassword email:', email);
         // Appel à votre API backend qui gèrera l'authentification Firebase
         const response = await axios.post(`${API_URL}/forgot_password`, {
           username: email,
         });
-        console.log("envoie réussie");
+        console.log("envoie forgottenPassword réussie");
       } catch (error) {
         console.error('Erreur de connexion:', error);
         throw error;

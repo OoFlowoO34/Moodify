@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 import { authService } from '@/services/auth/authService';
 import * as AuthSession from 'expo-auth-session';
 import React, { useState } from 'react';
+import { white } from 'react-native-paper/lib/typescript/styles/themes/v2/colors';
+import { Ionicons } from '@expo/vector-icons';
 
 // Remplacez par vos propres valeurs
 const CLIENT_ID = '638093ee58804e048c23d1b68164f63a';  // Obtenez-le depuis votre application Spotify
@@ -59,15 +61,16 @@ export default function TabTwoScreen() {
     <View>
       <Button 
         mode="outlined" 
-        icon="logout" 
+        icon={({ color, size }) => (
+          <Ionicons name="log-out" size={size} color="black" />
+        )}        
         onPress={handleLogout}
-        style={{ marginTop: 20 }}
+        style={styles.logoutButton}
       >
-        Se déconnecter
+      <Text style={styles.logoutText}> Se déconnecter </Text>
       </Button>
-      
         <Button onPress={handleLogin} disabled={!request}>
-          Se connecter avec Spotify
+          <Text  style={styles.primaryText}>Se connecter avec Spotify</Text>
         </Button>
         {accessToken && <Text style={styles.tokenText}>Token d'accès: {accessToken}</Text>}
         {error && <Text style={styles.errorText}>{error}</Text>}
@@ -101,5 +104,26 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 14,
     color: 'red',
+  },
+  primaryText: {
+    color: '#00F0F0',
+  },
+  whiteText: {
+    color: '#FFFFFF',
+  },
+  logoutButton: {
+    marginTop: 100,
+    alignSelf: 'center',
+    backgroundColor: "#00F0F0",
+    borderRadius: 30,
+    paddingVertical: 15,
+    width: "80%",
+    marginBottom: 30,
+  },
+  logoutText: {
+    color: "#000",
+    fontWeight: "bold",
+    fontSize: 16,
+    textAlign: "center",
   },
 });

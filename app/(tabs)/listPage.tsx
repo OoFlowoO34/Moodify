@@ -51,13 +51,12 @@ export default function TabThreeScreen() {
 
   const getMoodLogo = (mood: string) => {
     switch (mood) {
-      case 'Happy':
+      case 'happy':
         return require('@/assets/images/moodify_logo_happy.png');
-      case 'Sad':
+      case 'sad':
         return require('@/assets/images/moodify_logo_sad.png');
-      case 'Angry':
-        return require('@/assets/images/moodify_logo_angry.png');
-      case 'AI':
+      case 'neutral':
+         return require('@/assets/images/moodify_logo.png');      
       default:
         return require('@/assets/images/moodify_logo.png');
     }
@@ -150,27 +149,40 @@ export default function TabThreeScreen() {
       <NavBar />
       
       {/* En-tête avec l'humeur sélectionnée - Animé */}
-      <Animated.View 
-        style={[
-          styles.header,
-          {
-            transform: [{ translateY: headerTranslateY }],
-          }
-        ]}
-      >
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>
-            {selectedMood ? `Musiques ${selectedMood}` : 'Sélectionnez une humeur'}
-          </Text>
-          {selectedMood && (
-            <Image
-              source={getMoodLogo(selectedMood)}
-              style={styles.moodLogo}
-              resizeMode="contain"
-            />
-          )}
-        </View>
-      </Animated.View>
+<Animated.View 
+  style={[
+    styles.header,
+    {
+      transform: [{ translateY: headerTranslateY }],
+    }
+  ]}
+>
+  <View style={styles.headerContent}>
+    {isLoading ? (
+      <>
+        <Animated.View
+          style={[styles.skeletonHeaderText, { opacity: skeletonOpacity }]}
+        />
+        <Animated.View
+          style={[styles.skeletonHeaderImage, { opacity: skeletonOpacity }]}
+        />
+      </>
+    ) : (
+      <>
+        <Text style={styles.headerTitle}>
+          {selectedMood ? `Musiques ${selectedMood}` : 'Sélectionnez une humeur'}
+        </Text>
+        {selectedMood && (
+          <Image
+            source={getMoodLogo(selectedMood)}
+            style={styles.moodLogo}
+            resizeMode="contain"
+          />
+        )}
+      </>
+    )}
+  </View>
+</Animated.View>
 
       {/* Liste de musique */}
       <FlatList
@@ -370,5 +382,18 @@ const styles = StyleSheet.create({
     height: 20,
     backgroundColor: '#444', // Plus clair pour être plus visible
     borderRadius: 4,
+  },
+    skeletonHeaderText: {
+    height: 24,
+    width: '60%',
+    backgroundColor: '#3a3a3a',
+    borderRadius: 6,
+    marginBottom: 10,
+  },
+  skeletonHeaderImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#444',
   },
 });
