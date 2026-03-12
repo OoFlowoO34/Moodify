@@ -69,11 +69,6 @@ export default function TabTwoScreen() {
       >
       <Text style={styles.logoutText}> Se déconnecter </Text>
       </Button>
-        <Button onPress={handleLogin} disabled={!request}>
-          <Text  style={styles.primaryText}>Se connecter avec Spotify</Text>
-        </Button>
-        {accessToken && <Text style={styles.tokenText}>Token d'accès: {accessToken}</Text>}
-        {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
 }
