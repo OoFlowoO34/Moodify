@@ -16,9 +16,6 @@ const NavBar: React.FC = ({
         <TouchableOpacity  onPress={() => router.push("/(tabs)/param")} style={styles.leftButton}>
           <Text style={styles.buttonText}>Paramètres</Text>
         </TouchableOpacity>
-        <TouchableOpacity  onPress={() => router.push("/(tabs)/spotify")} style={styles.leftButton}>
-          <Text style={styles.buttonText}>Spotify</Text>
-        </TouchableOpacity>
 
         {/* Conteneur des boutons à droite */}
         <View style={styles.rightContainer}>

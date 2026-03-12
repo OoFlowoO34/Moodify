@@ -3,11 +3,13 @@ import NavBar from '@/components/NavBar';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useState, useRef } from 'react';
 import { Button, StyleSheet, Text, TouchableOpacity, View, Alert, Image } from 'react-native';
-import { getMusicListByMood } from "@/services/mood/moodService";
+import { getMusicListByMood, getMusicListByImage, sendPhoto} from "@/services/mood/moodService";
 import { useMusicContext } from '@/contexts/MusicContext';
 import * as MediaLibrary from 'expo-media-library';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+
 // import {loginWithSpotify} from '../../services/auth/authSpotifyService';
 
 export default function App() {
@@ -67,10 +69,11 @@ export default function App() {
     
     try {
       const musicListByMood = await getMusicListByMood(humor);
+      console.log('Liste de musique reçue:', musicListByMood);
       // S'assurer que même si l'API retourne null/undefined, on a une liste vide
-      const safeList = Array.isArray(musicListByMood) ? musicListByMood : [];
-      setMusicList(safeList);
-      console.log('Liste de musique chargée:', safeList);
+      const musicList = Array.isArray(musicListByMood?.playlist) ? musicListByMood.playlist : [];
+      setMusicList(musicList);
+      console.log('Liste de musique chargée:', musicList);
       
     } catch (error) {
       console.error('Erreur lors du chargement de la musique:', error);
@@ -81,35 +84,89 @@ export default function App() {
     }
   }
 
-  async function takePicture() {
-    if (cameraRef.current) {
-      try {
-        const photo = await cameraRef.current.takePictureAsync({
-          quality: 0.8,
-          base64: true,
-        });
-        
-        if (photo) {
-          console.log('Photo prise:', photo.uri);
-          
-          // Demander la permission pour accéder à la galerie
-          const { status } = await MediaLibrary.requestPermissionsAsync();
-          if (status === 'granted') {
-            // Sauvegarder la photo dans la galerie
-            const asset = await MediaLibrary.createAssetAsync(photo.uri);
-            await MediaLibrary.createAlbumAsync('Moodify', asset, false);
-            Alert.alert('Succès', 'Photo sauvegardée dans la galerie !');
-            console.log('Photo sauvegardée:', asset);
-          } else {
-            Alert.alert('Permission refusée', 'Impossible de sauvegarder la photo dans la galerie');
-          }
+async function takePicture()  {
+  setIsLoading(true);
+  router.push('/(tabs)/listPage');
+  console.log('Prise de photo...');
+  setMusicList([]);
+  if (cameraRef.current) {
+    console.log('Tentative de prise de photo...');
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.8,
+        base64: true,
+      });
+
+      console.log('Photo:', photo?.uri);
+
+      if (photo) {
+        console.log('Photo prise:', photo.uri);
+
+        // Demander la permission pour accéder à la galerie
+        const { status } = await MediaLibrary.requestPermissionsAsync();
+        if (status === 'granted') {
+          // Sauvegarder la photo dans la galerie
+          const asset = await MediaLibrary.createAssetAsync(photo.uri);
+          await MediaLibrary.createAlbumAsync('Moodify', asset, false);
+          // Alert.alert('Succès', 'Photo sauvegardée dans la galerie !');
+          console.log('Photo sauvegardée:', asset);
+
+        } else {
+          Alert.alert('Permission refusée', 'Impossible de sauvegarder la photo dans la galerie');
         }
-      } catch (error) {
-        console.error('Erreur lors de la prise de photo:', error);
-        Alert.alert('Erreur', 'Impossible de prendre la photo');
+
+        // Envoyer la photo à l'API avec Axios
+        const musicListByPicture = await sendPhoto(photo.uri);
+        const musicList = Array.isArray(musicListByPicture?.playlist) ? musicListByPicture.playlist : [];
+        const humorList = musicListByPicture?.humor || "neutral";
+
+        console.log('Liste de musique reçue humorList:', humorList);
+
+        setSelectedMood(humorList);
+
+        setMusicList(musicList);
+        setIsLoading(false);
+
+        console.log('Liste de musique reçue après envoi de la photo:', musicListByPicture);
       }
+    } catch (error) {
+      console.error('Erreur lors de la prise de photo:', error);
+      Alert.alert('Erreur', 'Impossible de prendre la photo');
     }
   }
+};
+
+async function pickImageFromGallery() {
+  setIsLoading(true);
+  try {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const image = result.assets[0];
+      console.log('Image choisie:', image.uri);
+
+      setMusicList([]);
+      router.push('/(tabs)/listPage');
+
+      const musicListByPicture = await sendPhoto(image.uri);
+      const musicList = Array.isArray(musicListByPicture?.playlist) ? musicListByPicture.playlist : [];
+      const humorList = musicListByPicture?.humor || "neutral";
+      console.log('Liste de musique reçue humorList:', humorList);
+      setSelectedMood(humorList);
+      setMusicList(musicList);
+      setIsLoading(false);
+
+      console.log('Liste de musique reçue après sélection de la photo:', musicListByPicture);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la sélection de la photo:', error);
+    Alert.alert('Erreur', 'Impossible de sélectionner la photo');
+  }
+}
+
 
   return (
     <View style={styles.container}>
@@ -165,7 +222,7 @@ export default function App() {
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={styles.humorButton} 
-                  onPress={() => handleHumorSelection('Sad')}
+                  onPress={() => handleHumorSelection('sad')}
                 >
                   <Image
                   source={require('@/assets/images/moodify_logo_sad.png')}
@@ -174,37 +231,56 @@ export default function App() {
                   {/* <Text style={styles.humorEmoji}>😢</Text>
                   <Text style={styles.humorLabel}>Triste</Text> */}
                 </TouchableOpacity>
-                <TouchableOpacity 
+                {/* <TouchableOpacity 
                   style={styles.humorButton} 
                   onPress={() => handleHumorSelection('AI')}
                 >
                   <Text style={styles.humorEmoji}>🤖</Text>
                   <Text style={styles.humorLabel}>IA</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
                 <TouchableOpacity 
                   style={styles.humorButton} 
-                  onPress={() => handleHumorSelection('Angry')}
+                  onPress={() => handleHumorSelection('neutral')}
                 >
                   <Image
-                  source={require('@/assets/images/moodify_logo_angry.png')}
+                  source={require('@/assets/images/moodify_logo.png')}
                   style={{ width: '80%', height: '80%'}}
                   />
-                  {/* <Text style={styles.humorEmoji}>😡</Text>
-                  <Text style={styles.humorLabel}>Furieux</Text> */}
+                  {/* <Text style={styles.humorEmoji}>😡</Text> */}
+                  {/* <Text style={styles.humorLabel}>Furieux</Text> */}
                 </TouchableOpacity>
+                {/* <TouchableOpacity 
+                  style={styles.humorButton} 
+                  onPress={() => handleHumorSelection('relaxed')}
+                >
+                  <Image
+                  source={require('@/assets/images/moodify_logo.png')}
+                  style={{ width: '80%', height: '80%'}}
+                  />
+                  <Text style={styles.humorEmoji}>😡</Text>
+                  <Text style={styles.humorLabel}>Furieux</Text>
+                </TouchableOpacity> */}
               </View>
             </TouchableOpacity>
           </TouchableOpacity>
         )}
         
         {/* Bouton de capture centré */}
-        <TouchableOpacity style={styles.cameraButton} onPress={takePicture}>
+        <TouchableOpacity
+          style={styles.folderButton}
+          onPress={() => { pickImageFromGallery() }}
+        >
+          <Ionicons name="folder" size={24} color="white" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.cameraButton}
+          onPress={() => { takePicture() }}
+        >
           <View style={styles.cameraButtonInner}>
             <View style={styles.cameraButtonCenter} />
           </View>
         </TouchableOpacity>
         
-        {/* MusicPlayer en bas */}
         <MusicPlayer />
 
       </CameraView>
@@ -373,4 +449,26 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#ddd',
   },
+  folderButton: {
+    position: 'absolute',
+    bottom: 120, // Position juste au-dessus du MusicPlayer qui fait maintenant 100px de haut
+    left: '20%',
+    marginLeft: -40, // Centre le bouton (moitié de la largeur 80px)
+    width: 60,
+    height: 60,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'white',
+    // shadowColor: '#000',
+    // // shadowOffset: {
+    // //   width: 0,
+    // //   height: 4,
+    // // },
+    // shadowOpacity: 0.3,
+    // shadowRadius: 4.65,
+    // elevation: 8,
+  }
 });

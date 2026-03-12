@@ -4,7 +4,7 @@ import { authService } from "@/services/auth/authService";
 import { router } from "expo-router";
 
 const LoginScreen = () => {
-  const [email, setEmail] = useState("dorian.figueras1207@gmail.com"); // Valeur préremplie
+  const [email, setEmail] = useState("florian.batt@hotmail.com"); // Valeur préremplie
   const [password, setPassword] = useState("password"); // Mot de passe simple pour les tests
   const [loading, setLoading] = useState(false);
 
