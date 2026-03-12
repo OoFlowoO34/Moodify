@@ -12,25 +12,18 @@ const NavBar: React.FC = ({
     <View style={styles.topContainer}>
       <View style={styles.navBarContainer}>
 
-        {/* Bouton paramètres à gauche */}
-        <TouchableOpacity  onPress={() => router.push("/(tabs)/param")} style={styles.leftButton}>
+        <TouchableOpacity onPress={() => router.replace("/(tabs)/param")} style={styles.navButton}>
           <Text style={styles.buttonText}>Paramètres</Text>
         </TouchableOpacity>
 
-        {/* Conteneur des boutons à droite */}
-        <View style={styles.rightContainer}>
-          {/* Bouton Liste avec navigation intégrée */}
-          <TouchableOpacity onPress={() => router.push("/(tabs)/listPage")} style={styles.rightButton}>
-            <Text style={styles.buttonText}>Liste</Text>
-          </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.replace("/(tabs)/listPage")} style={styles.navButton}>
+          <Text style={styles.buttonText}>Liste</Text>
+        </TouchableOpacity>
 
-          {/* Bouton Caméra avec navigation intégrée */}
-          <TouchableOpacity 
-          onPress={() => router.push("/(tabs)/camera")}
-          style={styles.rightButton}>
-            <Text style={styles.buttonText}>Caméra</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity onPress={() => router.replace("/(tabs)/camera")} style={styles.navButton}>
+          <Text style={styles.buttonText}>Caméra</Text>
+        </TouchableOpacity>
+
       </View>
     </View>
   );
@@ -49,24 +42,18 @@ const styles = StyleSheet.create({
     marginTop: 30,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'space-evenly',
     paddingHorizontal: 16,
     paddingVertical: 10,
     backgroundColor: '#00F0F0',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0, 240, 240, 0.2)',
-    zIndex: 20, // Assurez-vous que la NavBar est au-dessus des autres éléments
+    zIndex: 20,
   },
-  leftButton: {
-    padding: 5,
-  },
-  rightContainer: {
-    flexDirection: 'row',
+  navButton: {
+    flex: 1,
     alignItems: 'center',
-  },
-  rightButton: {
     padding: 5,
-    marginLeft: 10, // Espacement entre les boutons à droite
   },
   buttonText: {
     color: 'white',

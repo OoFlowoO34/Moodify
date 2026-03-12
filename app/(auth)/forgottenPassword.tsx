@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert, TextInput } from "react-native";
 import { authService } from "@/services/auth/authService";
 import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 const ForgottenPasswordScreen = () => {
   const [email, setEmail] = useState("dorian.figueras1207@gmail.com"); // Valeur préremplie
@@ -32,6 +33,9 @@ const ForgottenPasswordScreen = () => {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+      </TouchableOpacity>
       <Text style={styles.title}>Mot de passe oublié</Text>
       
       <Text style={styles.subtitle}>Renseignez votre email</Text>
@@ -92,6 +96,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
   },  
+    backButton: {
+      position: "absolute",
+      top: 60,
+      left: 20,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: "#00F0F0",
+      justifyContent: "center",
+      alignItems: "center",
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 3,
+      elevation: 4,
+    },
     subtitle: {
     fontSize: 20,
     color: "#fff",
