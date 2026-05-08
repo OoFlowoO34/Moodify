@@ -50,7 +50,7 @@ export default function TabThreeScreen() {
   }, [isLoading]);
 
   const getMoodLogo = (mood: string) => {
-    switch (mood) {
+    switch (mood.toLowerCase()) {
       case 'happy':
         return require('@/assets/images/moodify_logo_happy.png');
       case 'sad':
