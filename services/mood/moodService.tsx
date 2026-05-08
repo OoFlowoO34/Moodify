@@ -2,6 +2,54 @@ import axios from 'axios';
 import { Alert } from 'react-native';
 const API_URL = __DEV__ ? 'https://dm-developpement.fr/moodify' : 'https://my-json-server.typicode.com/OoFlowoO34/mockjson';
 
+export interface FormattedMusicTrack {
+  artiste: string;
+  titre: string;
+  url: string;
+}
+
+function parsePlaylist(rawPlaylist: unknown): Array<{ name?: string; artist?: string; url?: string }> {
+  if (Array.isArray(rawPlaylist)) {
+    return rawPlaylist;
+  }
+
+  if (typeof rawPlaylist !== 'string') {
+    return [];
+  }
+
+  const trimmedPlaylist = rawPlaylist.trim();
+  if (!trimmedPlaylist) {
+    return [];
+  }
+
+  try {
+    return JSON.parse(trimmedPlaylist);
+  } catch (firstError) {
+    try {
+      return JSON.parse(trimmedPlaylist.replace(/\\"/g, '"'));
+    } catch (secondError) {
+      console.error('Impossible de parser la playlist reçue:', secondError ?? firstError);
+      return [];
+    }
+  }
+}
+
+export function formatPlaylistResponse(apiResponse: any): {
+  humor: string | null;
+  playlist: FormattedMusicTrack[];
+} {
+  const parsedPlaylist = parsePlaylist(apiResponse?.playlist);
+
+  return {
+    humor: typeof apiResponse?.humor === 'string' ? apiResponse.humor : null,
+    playlist: parsedPlaylist.map((track) => ({
+      titre: track.name ?? '',
+      artiste: track.artist ?? '',
+      url: track.url ?? '',
+    })),
+  };
+}
+
 // Récupérer un token d'accès Spotify
 export async function getMusicListByMood2(selectedMood: string){
   console.log('Humeur sélectionné:', selectedMood);

@@ -3,7 +3,7 @@ import NavBar from '@/components/NavBar';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useState, useRef } from 'react';
 import { Button, StyleSheet, Text, TouchableOpacity, View, Alert, Image } from 'react-native';
-import { getMusicListByMood, getMusicListByImage, sendPhoto} from "@/services/mood/moodService";
+import { formatPlaylistResponse, getMusicListByMood, getMusicListByImage, sendPhoto } from "@/services/mood/moodService";
 import { useMusicContext } from '@/contexts/MusicContext';
 import * as MediaLibrary from 'expo-media-library';
 import { Ionicons } from '@expo/vector-icons';
@@ -70,10 +70,10 @@ export default function App() {
     try {
       const musicListByMood = await getMusicListByMood(humor);
       console.log('Liste de musique reçue:', musicListByMood);
-      // S'assurer que même si l'API retourne null/undefined, on a une liste vide
-      const musicList = Array.isArray(musicListByMood?.playlist) ? musicListByMood.playlist : [];
-      setMusicList(musicList);
-      console.log('Liste de musique chargée:', musicList);
+      const formattedResponse = formatPlaylistResponse(musicListByMood);
+      setSelectedMood(formattedResponse.humor ?? humor);
+      setMusicList(formattedResponse.playlist);
+      console.log('Liste de musique chargée:', formattedResponse.playlist);
       
     } catch (error) {
       console.error('Erreur lors du chargement de la musique:', error);
@@ -117,14 +117,14 @@ async function takePicture()  {
 
         // Envoyer la photo à l'API avec Axios
         const musicListByPicture = await sendPhoto(photo.uri);
-        const musicList = Array.isArray(musicListByPicture?.playlist) ? musicListByPicture.playlist : [];
-        const humorList = musicListByPicture?.humor || "neutral";
+        const formattedResponse = formatPlaylistResponse(musicListByPicture);
+        const humorList = formattedResponse.humor || "neutral";
 
         console.log('Liste de musique reçue humorList:', humorList);
 
         setSelectedMood(humorList);
 
-        setMusicList(musicList);
+        setMusicList(formattedResponse.playlist);
         setIsLoading(false);
 
         console.log('Liste de musique reçue après envoi de la photo:', musicListByPicture);
@@ -152,11 +152,11 @@ async function pickImageFromGallery() {
       router.push('/(tabs)/listPage');
 
       const musicListByPicture = await sendPhoto(image.uri);
-      const musicList = Array.isArray(musicListByPicture?.playlist) ? musicListByPicture.playlist : [];
-      const humorList = musicListByPicture?.humor || "neutral";
+      const formattedResponse = formatPlaylistResponse(musicListByPicture);
+      const humorList = formattedResponse.humor || "neutral";
       console.log('Liste de musique reçue humorList:', humorList);
       setSelectedMood(humorList);
-      setMusicList(musicList);
+      setMusicList(formattedResponse.playlist);
       setIsLoading(false);
 
       console.log('Liste de musique reçue après sélection de la photo:', musicListByPicture);
