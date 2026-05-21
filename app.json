@@ -16,7 +16,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.moodify.app" 
+      "package": "com.moodify.app"
     },
     "web": {
       "bundler": "metro",
@@ -46,12 +46,13 @@
           "photosPermission": "Allow $(PRODUCT_NAME) to access your photos.",
           "savePhotosPermission": "Allow $(PRODUCT_NAME) to save photos."
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true
     },
-      "extra": {
+    "extra": {
       "redirectUri": "myapp://callback"
     }
   }

@@ -1,5 +1,9 @@
 import axios from 'axios';
-import { Alert } from 'react-native';
+
+/**
+ * L'API sert à la détection d'humeur (photo / texte).
+ * Les playlists sont chargées localement via localPlaylistService.
+ */
 const API_URL = __DEV__ ? 'https://dm-developpement.fr/moodify' : 'https://my-json-server.typicode.com/OoFlowoO34/mockjson';
 
 export interface FormattedMusicTrack {
@@ -42,7 +46,8 @@ export function formatPlaylistResponse(apiResponse: any): {
 
   return {
     humor: typeof apiResponse?.humor === 'string' ? apiResponse.humor : null,
-    playlist: parsedPlaylist.map((track) => ({
+    playlist: parsedPlaylist.map((track, index) => ({
+      id: `legacy-${index}`,
       titre: track.name ?? '',
       artiste: track.artist ?? '',
       url: track.url ?? '',
