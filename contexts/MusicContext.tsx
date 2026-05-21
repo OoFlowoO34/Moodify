@@ -17,8 +17,6 @@ export interface MusicTrack {
   titre: string;
   url?: string;
   localAsset?: number;
-  /** Pochette extraite des métadonnées ID3 (require) */
-  coverAsset?: number;
   mood?: string;
 }
 
