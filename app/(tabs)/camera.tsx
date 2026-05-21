@@ -1,45 +1,57 @@
-import MusicPlayer from '@/components/MusicPlayer';
 import NavBar from '@/components/NavBar';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { useState, useRef } from 'react';
-import { Button, StyleSheet, Text, TouchableOpacity, View, Alert, Image } from 'react-native';
-import { formatPlaylistResponse, getMusicListByMood, getMusicListByImage, sendPhoto } from "@/services/mood/moodService";
+import { useState, useRef, useEffect } from 'react';
+import {
+  Button, StyleSheet, Text, TouchableOpacity, View, Alert, Image,
+  Animated,
+} from 'react-native';
+import { formatPlaylistResponse, getMusicListByMood, sendPhoto } from "@/services/mood/moodService";
 import { useMusicContext } from '@/contexts/MusicContext';
 import * as MediaLibrary from 'expo-media-library';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 
-// import {loginWithSpotify} from '../../services/auth/authSpotifyService';
+const ACCENT = '#00F0F0';
+const BG = '#0D0D0F';
+const BORDER_S = 'rgba(255,255,255,0.06)';
+const BORDER_ACCENT = 'rgba(0,240,240,0.16)';
+const TEXT = '#FAFAFA';
+const SURF = 'rgba(0,0,0,0.50)';
 
 export default function App() {
-  const [facing, setFacing] = useState<CameraType>('back');
+  const [facing, setFacing] = useState<CameraType>('front');
   const [permission, requestPermission] = useCameraPermissions();
-  const [showHumor, setShowHumor] = useState(false); // Contrôle de l'affichage du bouton "Sélectionner une humeur"
-  const [humorSelected, setHumorSelected] = useState(''); // Indique si l'humeur a été sélectionnée
+  const [showHumor, setShowHumor] = useState(false);
+  const [humorSelected, setHumorSelected] = useState('');
   const cameraRef = useRef<CameraView>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
   const { setMusicList, setSelectedMood, setIsLoading } = useMusicContext();
-  // const handleLogin = async () => {
-  //   try {
-  //     // const result = await loginWithSpotify();
-  //     // setAccessToken(result.accessToken);
-  //     // console.log('Access Token:', result.accessToken);
-  //   } catch (error) {
-  //     console.error('Erreur lors de la connexion Spotify:', error);
-  //   }
-  // };
 
-    
+  // Breathing animation for capture ring
+  const breathAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(breathAnim, { toValue: 1, duration: 1400, useNativeDriver: true }),
+        Animated.timing(breathAnim, { toValue: 0, duration: 1400, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  const breathScale = breathAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.2] });
+  const breathOpacity = breathAnim.interpolate({ inputRange: [0, 1], outputRange: [0.5, 0] });
+
   if (!permission) {
     return <View />;
   }
 
   if (!permission.granted) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.message}>We need your permission to show the camera</Text>
-        <Button onPress={requestPermission} title="grant permission" />
+      <View style={styles.permContainer}>
+        <Text style={styles.permText}>Autorisation caméra requise</Text>
+        <TouchableOpacity style={styles.permButton} onPress={requestPermission}>
+          <Text style={styles.permButtonText}>Autoriser</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -48,240 +60,165 @@ export default function App() {
     setFacing(current => (current === 'back' ? 'front' : 'back'));
   }
 
-  function handleHumorPress() {
-    if(showHumor) {
-        setShowHumor(false); // Affiche le bouton "Sélectionner une humeur" lorsque l'utilisateur appuie sur "Humeur"
-    }else {
-        setShowHumor(true); // Cache le bouton "Sélectionner une humeur" lorsque l'utilisateur appuie sur "Humeur"
-    }
-}
-
   async function handleHumorSelection(humor: string) {
     router.push('/(tabs)/listPage');
-    console.log(`Humeur sélectionnée : ${humor}`);
-    setHumorSelected(humor); // Marque l'humeur comme sélectionnée
-    setShowHumor(false); // Cache le bouton "Sélectionner une humeur"
+    setHumorSelected(humor);
+    setShowHumor(false);
     setSelectedMood(humor);
     setIsLoading(true);
-    
-    // Vider immédiatement la liste pour éviter d'afficher les anciennes musiques
     setMusicList([]);
-    
     try {
       const musicListByMood = await getMusicListByMood(humor);
-      console.log('Liste de musique reçue:', musicListByMood);
       const formattedResponse = formatPlaylistResponse(musicListByMood);
       setSelectedMood(formattedResponse.humor ?? humor);
       setMusicList(formattedResponse.playlist);
-      console.log('Liste de musique chargée:', formattedResponse.playlist);
-      
     } catch (error) {
-      console.error('Erreur lors du chargement de la musique:', error);
-      setMusicList([]); // Vider la liste en cas d'erreur aussi
+      setMusicList([]);
       Alert.alert('Erreur', 'Impossible de charger la musique');
     } finally {
       setIsLoading(false);
     }
   }
 
-async function takePicture()  {
-  setIsLoading(true);
-  router.push('/(tabs)/listPage');
-  console.log('Prise de photo...');
-  setMusicList([]);
-  if (cameraRef.current) {
-    console.log('Tentative de prise de photo...');
-    try {
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
-        base64: true,
-      });
-
-      console.log('Photo:', photo?.uri);
-
-      if (photo) {
-        console.log('Photo prise:', photo.uri);
-
-        // Demander la permission pour accéder à la galerie
-        const { status } = await MediaLibrary.requestPermissionsAsync();
-        if (status === 'granted') {
-          // Sauvegarder la photo dans la galerie
-          const asset = await MediaLibrary.createAssetAsync(photo.uri);
-          await MediaLibrary.createAlbumAsync('Moodify', asset, false);
-          // Alert.alert('Succès', 'Photo sauvegardée dans la galerie !');
-          console.log('Photo sauvegardée:', asset);
-
-        } else {
-          Alert.alert('Permission refusée', 'Impossible de sauvegarder la photo dans la galerie');
+  async function takePicture() {
+    setIsLoading(true);
+    router.push('/(tabs)/listPage');
+    setMusicList([]);
+    if (cameraRef.current) {
+      try {
+        const photo = await cameraRef.current.takePictureAsync({ quality: 0.8, base64: true });
+        if (photo) {
+          const { status } = await MediaLibrary.requestPermissionsAsync();
+          if (status === 'granted') {
+            const asset = await MediaLibrary.createAssetAsync(photo.uri);
+            await MediaLibrary.createAlbumAsync('Moodify', asset, false);
+          }
+          const musicListByPicture = await sendPhoto(photo.uri);
+          const formattedResponse = formatPlaylistResponse(musicListByPicture);
+          setSelectedMood(formattedResponse.humor || "neutral");
+          setMusicList(formattedResponse.playlist);
+          setIsLoading(false);
         }
+      } catch (error) {
+        Alert.alert('Erreur', 'Impossible de prendre la photo');
+      }
+    }
+  }
 
-        // Envoyer la photo à l'API avec Axios
-        const musicListByPicture = await sendPhoto(photo.uri);
+  async function pickImageFromGallery() {
+    setIsLoading(true);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const image = result.assets[0];
+        setMusicList([]);
+        router.push('/(tabs)/listPage');
+        const musicListByPicture = await sendPhoto(image.uri);
         const formattedResponse = formatPlaylistResponse(musicListByPicture);
-        const humorList = formattedResponse.humor || "neutral";
-
-        console.log('Liste de musique reçue humorList:', humorList);
-
-        setSelectedMood(humorList);
-
+        setSelectedMood(formattedResponse.humor || "neutral");
         setMusicList(formattedResponse.playlist);
         setIsLoading(false);
-
-        console.log('Liste de musique reçue après envoi de la photo:', musicListByPicture);
       }
     } catch (error) {
-      console.error('Erreur lors de la prise de photo:', error);
-      Alert.alert('Erreur', 'Impossible de prendre la photo');
+      Alert.alert('Erreur', 'Impossible de sélectionner la photo');
     }
   }
-};
-
-async function pickImageFromGallery() {
-  setIsLoading(true);
-  try {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      const image = result.assets[0];
-      console.log('Image choisie:', image.uri);
-
-      setMusicList([]);
-      router.push('/(tabs)/listPage');
-
-      const musicListByPicture = await sendPhoto(image.uri);
-      const formattedResponse = formatPlaylistResponse(musicListByPicture);
-      const humorList = formattedResponse.humor || "neutral";
-      console.log('Liste de musique reçue humorList:', humorList);
-      setSelectedMood(humorList);
-      setMusicList(formattedResponse.playlist);
-      setIsLoading(false);
-
-      console.log('Liste de musique reçue après sélection de la photo:', musicListByPicture);
-    }
-  } catch (error) {
-    console.error('Erreur lors de la sélection de la photo:', error);
-    Alert.alert('Erreur', 'Impossible de sélectionner la photo');
-  }
-}
-
 
   return (
     <View style={styles.container}>
-      <NavBar />
       <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
-        {/* Boutons en haut de l'écran */}
-        <View style={styles.topButtonContainer}>
-          <TouchableOpacity style={styles.topButton} onPress={toggleCameraFacing}>
-            <Ionicons name="camera-reverse" size={24} color="white" />
+
+        {/* Vignette overlay */}
+        <View style={styles.vignette} pointerEvents="none" />
+
+        {/* Top chrome */}
+        <View style={styles.topChrome}>
+          <TouchableOpacity style={styles.glassButton} onPress={() => router.back()}>
+            <Ionicons name="close" size={20} color={TEXT} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.topButton} onPress={handleHumorPress}>
-            <Image
-              source={require('@/assets/images/moodify_logo.png')}
-              style={{ width: '80%', height: '80%'}}
-            />
+
+          <View style={styles.statusChip}>
+            <Text style={styles.statusChipText}>FACE · DÉTECTÉ</Text>
+          </View>
+
+          <TouchableOpacity style={styles.glassButton} onPress={toggleCameraFacing}>
+            <Ionicons name="camera-reverse" size={20} color={TEXT} />
           </TouchableOpacity>
         </View>
 
-        {/* Modal de sélection d'humeur */}
+        {/* Framing corners */}
+        <View style={styles.framingArea} pointerEvents="none">
+          <View style={[styles.corner, styles.cornerTL]} />
+          <View style={[styles.corner, styles.cornerTR]} />
+          <View style={[styles.corner, styles.cornerBL]} />
+          <View style={[styles.corner, styles.cornerBR]} />
+        </View>
+
+        {/* Instructional text */}
+        <Text style={styles.instructionText}>Regarde l'objectif.</Text>
+
+        {/* Humor modal */}
         {showHumor && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.humorOverlay}
             activeOpacity={1}
             onPress={() => setShowHumor(false)}
           >
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.humorModal}
               activeOpacity={1}
               onPress={(e) => e.stopPropagation()}
             >
-              {/* Bouton close positionné dans l'angle */}
-              <TouchableOpacity 
-                style={styles.closeButton}
-                onPress={() => setShowHumor(false)}
-              >
-                <Ionicons name="close" size={18} color="white" />
+              <TouchableOpacity style={styles.closeButton} onPress={() => setShowHumor(false)}>
+                <Ionicons name="close" size={16} color={TEXT} />
               </TouchableOpacity>
-              
-              <View style={styles.humorHeader}>
-                <Text style={styles.humorTitle}>Sélectionnez votre humeur</Text>
-              </View>
-              <View style={styles.humorContainer}>
-                <TouchableOpacity 
-                  style={styles.humorButton} 
-                  onPress={() => handleHumorSelection('Happy')}
-                >
-                  <Image
-                  source={require('@/assets/images/moodify_logo_happy.png')}
-                  style={{ width: '80%', height: '80%'}}
-                  />
-                  {/* <Text style={styles.humorEmoji}>😀</Text> */}
-                  {/* <Text style={styles.humorLabel}>Joyeux</Text> */}
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.humorButton} 
-                  onPress={() => handleHumorSelection('sad')}
-                >
-                  <Image
-                  source={require('@/assets/images/moodify_logo_sad.png')}
-                  style={{ width: '80%', height: '80%'}}
-                  />
-                  {/* <Text style={styles.humorEmoji}>😢</Text>
-                  <Text style={styles.humorLabel}>Triste</Text> */}
-                </TouchableOpacity>
-                {/* <TouchableOpacity 
-                  style={styles.humorButton} 
-                  onPress={() => handleHumorSelection('AI')}
-                >
-                  <Text style={styles.humorEmoji}>🤖</Text>
-                  <Text style={styles.humorLabel}>IA</Text>
-                </TouchableOpacity> */}
-                <TouchableOpacity 
-                  style={styles.humorButton} 
-                  onPress={() => handleHumorSelection('neutral')}
-                >
-                  <Image
-                  source={require('@/assets/images/moodify_logo.png')}
-                  style={{ width: '80%', height: '80%'}}
-                  />
-                  {/* <Text style={styles.humorEmoji}>😡</Text> */}
-                  {/* <Text style={styles.humorLabel}>Furieux</Text> */}
-                </TouchableOpacity>
-                {/* <TouchableOpacity 
-                  style={styles.humorButton} 
-                  onPress={() => handleHumorSelection('relaxed')}
-                >
-                  <Image
-                  source={require('@/assets/images/moodify_logo.png')}
-                  style={{ width: '80%', height: '80%'}}
-                  />
-                  <Text style={styles.humorEmoji}>😡</Text>
-                  <Text style={styles.humorLabel}>Furieux</Text>
-                </TouchableOpacity> */}
+              <Text style={styles.humorTitle}>Sélectionnez votre humeur</Text>
+              <View style={styles.humorGrid}>
+                {[
+                  { key: 'Happy', label: 'Joyeux', icon: 'sunny' as const },
+                  { key: 'sad', label: 'Mélancolique', icon: 'rainy' as const },
+                  { key: 'neutral', label: 'Serein', icon: 'partly-sunny' as const },
+                ].map((item) => (
+                  <TouchableOpacity
+                    key={item.key}
+                    style={styles.humorItem}
+                    onPress={() => handleHumorSelection(item.key)}
+                  >
+                    <Ionicons name={item.icon} size={28} color={ACCENT} />
+                    <Text style={styles.humorLabel}>{item.label}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             </TouchableOpacity>
           </TouchableOpacity>
         )}
-        
-        {/* Bouton de capture centré */}
-        <TouchableOpacity
-          style={styles.folderButton}
-          onPress={() => { pickImageFromGallery() }}
-        >
-          <Ionicons name="folder" size={24} color="white" />
+
+        {/* Bottom controls area */}
+        {/* Gallery button (left) */}
+        <TouchableOpacity style={styles.sideButton} onPress={pickImageFromGallery}>
+          <Ionicons name="images" size={22} color={TEXT} />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.cameraButton}
-          onPress={() => { takePicture() }}
-        >
-          <View style={styles.cameraButtonInner}>
-            <View style={styles.cameraButtonCenter} />
-          </View>
+
+        {/* Capture button (center) with breathing ring */}
+        <View style={styles.captureWrapper}>
+          <Animated.View style={[
+            styles.breathRing,
+            { transform: [{ scale: breathScale }], opacity: breathOpacity },
+          ]} />
+          <View style={styles.innerRing} />
+          <TouchableOpacity style={styles.captureButton} onPress={takePicture} activeOpacity={0.9} />
+        </View>
+
+        {/* Mood selector button (right) */}
+        <TouchableOpacity style={[styles.sideButton, styles.sideButtonRight]} onPress={() => setShowHumor(true)}>
+          <Ionicons name="happy" size={22} color={ACCENT} />
         </TouchableOpacity>
-        
-        <MusicPlayer />
+
+        {/* Bottom floating nav */}
+        <NavBar active="cam" />
 
       </CameraView>
     </View>
@@ -291,19 +228,49 @@ async function pickImageFromGallery() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-  },
-  message: {
-    textAlign: 'center',
-    paddingBottom: 10,
+    backgroundColor: BG,
   },
   camera: {
     flex: 1,
   },
-  // Nouveau container pour les boutons en haut
-  topButtonContainer: {
+  permContainer: {
+    flex: 1,
+    backgroundColor: BG,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  permText: {
+    color: TEXT,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  permButton: {
+    height: 52,
+    paddingHorizontal: 32,
+    borderRadius: 999,
+    backgroundColor: ACCENT,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  permButtonText: {
+    color: '#0A0B33',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  // Overlay
+  vignette: {
     position: 'absolute',
-    top: 110, 
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
+  },
+  // Top chrome
+  topChrome: {
+    position: 'absolute',
+    top: 64,
     left: 20,
     right: 20,
     flexDirection: 'row',
@@ -311,164 +278,205 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 10,
   },
-  topButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
+  glassButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 999,
+    backgroundColor: SURF,
+    borderWidth: 1,
+    borderColor: BORDER_S,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: SURF,
+    borderWidth: 1,
+    borderColor: BORDER_S,
+  },
+  statusChipText: {
+    fontSize: 10,
+    letterSpacing: 2,
+    color: 'rgba(255,255,255,0.85)',
+    textTransform: 'uppercase',
+  },
+  // Framing corners
+  framingArea: {
+    position: 'absolute',
+    top: 160,
+    left: 48,
+    right: 48,
+    bottom: 270,
+  },
+  corner: {
+    position: 'absolute',
+    width: 28,
+    height: 28,
+    borderColor: ACCENT,
+  },
+  cornerTL: {
+    top: 0,
+    left: 0,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+  },
+  cornerTR: {
+    top: 0,
+    right: 0,
+    borderTopWidth: 2,
+    borderRightWidth: 2,
+  },
+  cornerBL: {
+    bottom: 0,
+    left: 0,
+    borderBottomWidth: 2,
+    borderLeftWidth: 2,
+  },
+  cornerBR: {
+    bottom: 0,
+    right: 0,
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+  },
+  // Instructional text
+  instructionText: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 250,
+    textAlign: 'center',
+    fontSize: 22,
+    fontWeight: '400',
+    color: TEXT,
+    letterSpacing: -0.3,
+  },
+  // Capture button
+  captureWrapper: {
+    position: 'absolute',
+    bottom: 125,
+    left: '50%',
+    marginLeft: -38,
+    width: 76,
+    height: 76,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  breathRing: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: ACCENT,
   },
-  topButtonText: {
-    fontSize: 20,
-    color: 'white',
+  innerRing: {
+    position: 'absolute',
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 1,
+    borderColor: ACCENT,
+    opacity: 0.7,
   },
-  // Styles pour le modal d'humeur
+  captureButton: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: TEXT,
+    borderWidth: 4,
+    borderColor: BG,
+    shadowColor: ACCENT,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  // Side buttons
+  sideButton: {
+    position: 'absolute',
+    bottom: 140,
+    left: 44,
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: SURF,
+    borderWidth: 1,
+    borderColor: BORDER_S,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sideButtonRight: {
+    left: undefined,
+    right: 44,
+  },
+  // Humor modal
   humorOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0,0,0,0.75)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 20,
   },
   humorModal: {
-    backgroundColor: 'rgba(30, 30, 30, 0.95)',
-    borderRadius: 20,
-    padding: 30,
-    margin: 20,
+    backgroundColor: 'rgba(26,26,31,0.97)',
+    borderRadius: 24,
+    padding: 28,
+    margin: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: BORDER_ACCENT,
+    width: '85%',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  humorHeader: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-    marginTop: 10, // Ajoute un peu d'espace en haut pour le bouton close
-  },
-  humorTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-    textAlign: 'center',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 12,
   },
   closeButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
     position: 'absolute',
-    right: -10, // Positionné en dehors de la modal pour être dans l'angle
-    top: -10,   // Positionné en dehors de la modal pour être dans l'angle
-    zIndex: 30, // Assure qu'il soit au-dessus de tout
-  },
-  closeButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  humorContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
-    gap: 15,
-  },
-  humorButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    justifyContent: 'center',
+    top: -12,
+    right: -12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    margin: 5,
+    justifyContent: 'center',
+    zIndex: 30,
   },
-  humorEmoji: {
-    fontSize: 30,
-    marginBottom: 5,
+  humorTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: TEXT,
+    textAlign: 'center',
+    marginBottom: 24,
+    marginTop: 8,
+  },
+  humorGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: 12,
+  },
+  humorItem: {
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: BORDER_S,
+    flex: 1,
   },
   humorLabel: {
-    fontSize: 12,
-    color: 'white',
-    fontWeight: '600',
+    fontSize: 11,
+    color: TEXT,
+    fontWeight: '500',
     textAlign: 'center',
   },
-  // Bouton de capture
-  cameraButton: {
-    position: 'absolute',
-    bottom: 120, // Position juste au-dessus du MusicPlayer qui fait maintenant 100px de haut
-    left: '50%',
-    marginLeft: -40, // Centre le bouton (moitié de la largeur 80px)
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 4,
-    borderColor: 'white',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
-  },
-  cameraButtonInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cameraButtonCenter: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: '#ddd',
-  },
-  folderButton: {
-    position: 'absolute',
-    bottom: 120, // Position juste au-dessus du MusicPlayer qui fait maintenant 100px de haut
-    left: '20%',
-    marginLeft: -40, // Centre le bouton (moitié de la largeur 80px)
-    width: 60,
-    height: 60,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'white',
-    // shadowColor: '#000',
-    // // shadowOffset: {
-    // //   width: 0,
-    // //   height: 4,
-    // // },
-    // shadowOpacity: 0.3,
-    // shadowRadius: 4.65,
-    // elevation: 8,
-  }
 });

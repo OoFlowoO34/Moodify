@@ -2,6 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
+import { logErrorForDev } from '@/utils/errors/getUserFacingError';
 
 // URL de l'API backend (à configurer selon votre environnement)
 const API_URL = __DEV__ ? 'https://dm-developpement.fr/moodify' : 'https://my-json-server.typicode.com/OoFlowoO34/mockjson';
@@ -11,9 +12,6 @@ export const authService = {
   // Connexion utilisateur
   async login(email: string, password: string) {
     try {
-      console.log('login email:', email);
-      console.log('login mdp:', password)
-      // Appel à votre API backend qui gèrera l'authentification Firebase
       const response = await axios.post(`${API_URL}/login`, {
         username: email,
         password: password,
@@ -21,7 +19,6 @@ export const authService = {
       const token = response.data.token_connexion;
 
       // Stockage du token dans AsyncStorage
-      console.log('Token reçu:', token);
       if (token) {
         await AsyncStorage.setItem('auth_token', token);  
         router.replace("/(tabs)/camera");
@@ -32,7 +29,7 @@ export const authService = {
       }
       
     } catch (error) {
-      console.error('Erreur de connexion:', error);
+      logErrorForDev('auth.login', error);
       throw error;
     }
   },
@@ -40,9 +37,6 @@ export const authService = {
     // Create user
     async createAccount(email: string, password: string) {
       try {
-        console.log('createAccount email:', email);
-        console.log('createAccount mdp:', password)
-        // Appel à votre API backend qui gèrera l'authentification Firebase
         const response = await axios.post(`${API_URL}/signup`, {
           username: email,
           password: password,
@@ -50,28 +44,24 @@ export const authService = {
         const token = response.data.token_creation;
   
         // Stockage du token dans AsyncStorage
-        console.log('Token reçu:', token);
         if (token) {
           await AsyncStorage.setItem('auth_token', token);  
           router.replace("/(tabs)/camera");
         }
         
       } catch (error) {
-        console.error('Erreur de connexion:', error);
+        logErrorForDev('auth.signup', error);
         throw error;
       }
     },
 
     async forgottenPassword(email: string) {
       try {
-        console.log('forgottenPassword email:', email);
-        // Appel à votre API backend qui gèrera l'authentification Firebase
-        const response = await axios.post(`${API_URL}/forgot_password`, {
+        await axios.post(`${API_URL}/forgot_password`, {
           username: email,
         });
-        console.log("envoie forgottenPassword réussie");
       } catch (error) {
-        console.error('Erreur de connexion:', error);
+        logErrorForDev('auth.forgot_password', error);
         throw error;
       }
     },
@@ -87,7 +77,7 @@ export const authService = {
 
       return true;
     } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
+      logErrorForDev('auth.logout', error);
       throw error;
     }
   },

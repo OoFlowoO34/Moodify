@@ -1,53 +1,20 @@
-import { StyleSheet, Image, Platform, View, Text } from 'react-native';
-import { Button } from 'react-native-paper';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { authService } from '@/services/auth/authService';
-import * as AuthSession from 'expo-auth-session';
-import React, { useState } from 'react';
-import { white } from 'react-native-paper/lib/typescript/styles/themes/v2/colors';
+import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import NavBar from '@/components/NavBar';
 
-// Remplacez par vos propres valeurs
-const CLIENT_ID = '638093ee58804e048c23d1b68164f63a';  // Obtenez-le depuis votre application Spotify
-const REDIRECT_URI = AuthSession.makeRedirectUri({
-  scheme: 'com.moodify.app',  // Remplacez par votre schéma personnalisé (doit correspondre à votre configuration Spotify)
-});
+const BG = '#0D0D0F';
+const SURF = '#1A1A1F';
+const ACCENT = '#00F0F0';
+const TEXT = '#FAFAFA';
+const TEXT_MUT = 'rgba(255,255,255,0.60)';
+const TEXT_DIM = 'rgba(255,255,255,0.40)';
+const BORDER = 'rgba(0,240,240,0.16)';
+const BORDER_S = 'rgba(255,255,255,0.06)';
 
-const AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize';
-const TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token';
-
-const SCOPES = ['user-read-private', 'user-read-email'];
-
-const discovery = {
-  authorizationEndpoint: AUTH_ENDPOINT,
-  tokenEndpoint: TOKEN_ENDPOINT,
-};
-export default function TabTwoScreen() {
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const [request, response, promptAsync] = AuthSession.useAuthRequest(
-    {
-      clientId: CLIENT_ID,
-      scopes: SCOPES,
-      redirectUri: REDIRECT_URI,
-      responseType: AuthSession.ResponseType.Token,
-    },
-    discovery
-  );
-
-  React.useEffect(() => {
-    if (response?.type === 'success' && response.params.access_token) {
-      setAccessToken(response.params.access_token);
-    } else if (response?.type === 'error') {
-      setError('Erreur d\'authentification : ' + response.error?.message);
-    }
-  }, [response]);
-
-  const handleLogin = () => {
-    promptAsync();
-  };
-
+export default function ParamScreen() {
   const handleLogout = async () => {
     try {
       await authService.logout();
@@ -58,72 +25,146 @@ export default function TabTwoScreen() {
   };
 
   return (
-    <View>
-      <Button 
-        mode="outlined" 
-        icon={({ color, size }) => (
-          <Ionicons name="log-out" size={size} color="black" />
-        )}        
-        onPress={handleLogout}
-        style={styles.logoutButton}
-      >
-      <Text style={styles.logoutText}> Se déconnecter </Text>
-      </Button>
-        <Button onPress={handleLogin} disabled={!request}>
-          <Text  style={styles.primaryText}>Se connecter avec Spotify</Text>
-        </Button>
-        {accessToken && <Text style={styles.tokenText}>Token d'accès: {accessToken}</Text>}
-        {error && <Text style={styles.errorText}>{error}</Text>}
+    <View style={styles.container}>
+      {/* Top glow */}
+      <View style={styles.topGlow} />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.screenLabel}>PROFIL</Text>
+        <Text style={styles.screenTitle}>Paramètres</Text>
+      </View>
+
+      {/* Avatar placeholder */}
+      <View style={styles.avatarContainer}>
+        <View style={styles.avatar}>
+          <Ionicons name="person" size={36} color={ACCENT} />
+        </View>
+        <Text style={styles.avatarLabel}>Mon compte</Text>
+      </View>
+
+      {/* Settings rows */}
+      <View style={styles.section}>
+        <TouchableOpacity style={styles.row}>
+          <Ionicons name="notifications-outline" size={20} color={TEXT_MUT} />
+          <Text style={styles.rowText}>Notifications</Text>
+          <Ionicons name="chevron-forward" size={16} color={TEXT_DIM} />
+        </TouchableOpacity>
+        <View style={styles.divider} />
+        <TouchableOpacity style={styles.row}>
+          <Ionicons name="musical-notes-outline" size={20} color={TEXT_MUT} />
+          <Text style={styles.rowText}>Préférences musicales</Text>
+          <Ionicons name="chevron-forward" size={16} color={TEXT_DIM} />
+        </TouchableOpacity>
+        <View style={styles.divider} />
+        <TouchableOpacity style={styles.row}>
+          <Ionicons name="shield-outline" size={20} color={TEXT_MUT} />
+          <Text style={styles.rowText}>Confidentialité</Text>
+          <Ionicons name="chevron-forward" size={16} color={TEXT_DIM} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Logout */}
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.85}>
+        <Ionicons name="log-out-outline" size={18} color="#0A0B33" />
+        <Text style={styles.logoutText}>Se déconnecter</Text>
+      </TouchableOpacity>
+
+      <NavBar active="user" />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-    container: {
+  container: {
     flex: 1,
-    justifyContent: 'center',
+    backgroundColor: BG,
+  },
+  topGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 240,
+    backgroundColor: 'rgba(0,240,240,0.06)',
+  },
+  header: {
+    paddingTop: 80,
+    paddingHorizontal: 24,
+    marginBottom: 32,
+  },
+  screenLabel: {
+    fontSize: 11,
+    letterSpacing: 3,
+    color: ACCENT,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  screenTitle: {
+    fontSize: 32,
+    fontWeight: '600',
+    color: TEXT,
+    letterSpacing: -0.8,
+  },
+  avatarContainer: {
     alignItems: 'center',
-    padding: 20,
+    marginBottom: 36,
   },
-  tokenText: {
-    marginTop: 20,
-    fontSize: 14,
-    color: 'green',
+  avatar: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: 'rgba(0,240,240,0.12)',
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
-  errorText: {
-    marginTop: 20,
-    fontSize: 14,
-    color: 'red',
+  avatarLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: TEXT,
   },
-  primaryText: {
-    color: '#00F0F0',
+  section: {
+    marginHorizontal: 16,
+    backgroundColor: SURF,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: BORDER_S,
+    overflow: 'hidden',
+    marginBottom: 24,
   },
-  whiteText: {
-    color: '#FFFFFF',
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+  },
+  rowText: {
+    flex: 1,
+    fontSize: 15,
+    color: TEXT,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: BORDER_S,
+    marginLeft: 54,
   },
   logoutButton: {
-    marginTop: 100,
-    alignSelf: 'center',
-    backgroundColor: "#00F0F0",
-    borderRadius: 30,
-    paddingVertical: 15,
-    width: "80%",
-    marginBottom: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 56,
+    marginHorizontal: 24,
+    borderRadius: 999,
+    backgroundColor: ACCENT,
   },
   logoutText: {
-    color: "#000",
-    fontWeight: "bold",
     fontSize: 16,
-    textAlign: "center",
+    fontWeight: '600',
+    color: '#0A0B33',
   },
 });
