@@ -1,7 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
-  Text, StyleSheet, View, FlatList, TouchableOpacity,
-  Linking, Alert, Animated,
+  Text, StyleSheet, View, FlatList, TouchableOpacity, Animated,
 } from 'react-native';
 import { useMusicContext, MusicTrack } from '@/contexts/MusicContext';
 import NavBar from '@/components/NavBar';
@@ -61,7 +60,7 @@ export default function ListPageScreen() {
   const moodLabel = mood?.fr ?? selectedMood ?? 'Humeur';
   const moodCopy = mood?.copy ?? 'Morceaux sélectionnés pour toi.';
 
-  const renderTrack = ({ item, index }: { item: MusicTrack; index: number }) => {
+  const renderTrack = ({ item }: { item: MusicTrack }) => {
     const isActive = currentTrack?.id === item.id;
     return (
       <TouchableOpacity
@@ -70,7 +69,7 @@ export default function ListPageScreen() {
         activeOpacity={0.7}
       >
         <TrackArtwork
-          coverAsset={item.coverAsset}
+          url={item.url}
           size={48}
           borderRadius={10}
           active={isActive}
@@ -92,7 +91,7 @@ export default function ListPageScreen() {
     );
   };
 
-  const renderSkeleton = ({ index }: { index: number }) => (
+  const renderSkeleton = () => (
     <View style={styles.skeletonItem}>
       <Animated.View style={[styles.skeletonArt, { opacity: skeletonOpacity }]} />
       <View style={styles.skeletonText}>

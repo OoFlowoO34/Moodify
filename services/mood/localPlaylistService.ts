@@ -1,4 +1,3 @@
-import { COVER_REGISTRY } from '@/assets/audio/coversRegistry';
 import {
   MoodKey,
   PLAYLIST_MANIFEST,
@@ -38,7 +37,6 @@ function buildTrack(mood: MoodKey, entry: TrackManifestEntry): MusicTrack {
     titre: entry.titre,
     artiste: entry.artiste,
     url: entry.url,
-    coverAsset: entry.hasCover ? COVER_REGISTRY[entry.id] : undefined,
     mood,
   };
 }

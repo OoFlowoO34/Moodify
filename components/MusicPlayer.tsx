@@ -112,7 +112,7 @@ const MusicPlayer: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.trackRow}>
-        <TrackArtwork coverAsset={currentTrack.coverAsset} size={36} borderRadius={8} active />
+        <TrackArtwork url={currentTrack.url} size={36} borderRadius={8} active />
 
         <View style={styles.textContainer}>
           <Text style={styles.trackTitle} numberOfLines={1}>{currentTrack.titre}</Text>

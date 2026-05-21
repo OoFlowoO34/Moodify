@@ -1,27 +1,33 @@
 import { Image, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useCoverUri } from '@/hooks/useCoverUri';
 
 const ACCENT = '#00F0F0';
 const TEXT_MUT = 'rgba(255,255,255,0.60)';
 const BORDER_S = 'rgba(255,255,255,0.06)';
 
 type TrackArtworkProps = {
-  coverAsset?: number;
+  /** R2 URL of the MP3 — cover is extracted automatically from ID3 tags */
+  url?: string;
   size?: number;
   borderRadius?: number;
   active?: boolean;
 };
 
 export function TrackArtwork({
-  coverAsset,
+  url,
   size = 48,
   borderRadius = 10,
   active = false,
 }: TrackArtworkProps) {
-  if (coverAsset != null) {
+  const coverUri = useCoverUri(url);
+
+  const source: { uri: string } | null = coverUri != null ? { uri: coverUri } : null;
+
+  if (source != null) {
     return (
       <Image
-        source={coverAsset}
+        source={source}
         style={[
           styles.cover,
           { width: size, height: size, borderRadius },
