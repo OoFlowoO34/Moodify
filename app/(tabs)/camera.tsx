@@ -3,7 +3,7 @@ import { MOOD_LOGO_SOURCES } from '@/constants/moodLogos';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useState, useRef, useEffect } from 'react';
 import {
-  Button, StyleSheet, Text, TouchableOpacity, View, Image,
+  StyleSheet, Text, TouchableOpacity, View, Image,
   Animated,
 } from 'react-native';
 import { sendPhoto } from '@/services/mood/moodService';
@@ -13,7 +13,6 @@ import {
 } from '@/services/mood/localPlaylistService';
 import { useMusicContext } from '@/contexts/MusicContext';
 import { useFeedback } from '@/contexts/FeedbackContext';
-import * as MediaLibrary from 'expo-media-library';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -86,32 +85,28 @@ export default function App() {
   }
 
   async function takePicture() {
+    if (!cameraRef.current) return;
+
     setIsLoading(true);
-    router.push('/(tabs)/listPage');
     setMusicList([]);
     setCurrentTrack(null);
-    if (cameraRef.current) {
-      try {
-        const photo = await cameraRef.current.takePictureAsync({ quality: 0.8, base64: true });
-        if (photo) {
-          const { status } = await MediaLibrary.requestPermissionsAsync();
-          if (status === 'granted') {
-            const asset = await MediaLibrary.createAssetAsync(photo.uri);
-            await MediaLibrary.createAlbumAsync('Moodify', asset, false);
-          }
-          const apiResponse = await sendPhoto(photo.uri);
-          const { mood, playlist } = resolvePlaylistFromApiResponse(apiResponse);
-          setSelectedMood(mood);
-          setMusicList(playlist);
-          if (playlist.length > 0) {
-            playTrack(playlist[0]);
-          }
-        }
-      } catch {
-        showError(new Error('Photo'), 'generic');
-      } finally {
-        setIsLoading(false);
+    router.push('/(tabs)/listPage');
+
+    try {
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
+      if (!photo?.uri) return;
+
+      const apiResponse = await sendPhoto(photo.uri);
+      const { mood, playlist } = resolvePlaylistFromApiResponse(apiResponse);
+      setSelectedMood(mood);
+      setMusicList(playlist);
+      if (playlist.length > 0) {
+        playTrack(playlist[0]);
       }
+    } catch {
+      showError(new Error('Photo'), 'generic');
+    } finally {
+      setIsLoading(false);
     }
   }
 
