@@ -1,4 +1,3 @@
-import { AUDIO_REGISTRY } from '@/assets/audio/audioRegistry';
 import { COVER_REGISTRY } from '@/assets/audio/coversRegistry';
 import {
   MoodKey,
@@ -33,38 +32,25 @@ export function normalizeMood(raw: string | null | undefined): MoodKey {
   return MOOD_ALIASES[trimmed] ?? MOOD_ALIASES[trimmed.toLowerCase()] ?? 'neutral';
 }
 
-function buildTrack(mood: MoodKey, entry: TrackManifestEntry): MusicTrack | null {
-  const localAsset = AUDIO_REGISTRY[entry.id];
-  if (localAsset == null) {
-    if (__DEV__) {
-      console.log(
-        `[localPlaylist] Fichier manquant pour "${entry.id}" — ajoutez require() dans audioRegistry.ts`
-      );
-    }
-    return null;
-  }
-
+function buildTrack(mood: MoodKey, entry: TrackManifestEntry): MusicTrack {
   return {
     id: entry.id,
     titre: entry.titre,
     artiste: entry.artiste,
-    localAsset,
+    url: entry.url,
     coverAsset: entry.hasCover ? COVER_REGISTRY[entry.id] : undefined,
     mood,
   };
 }
 
-/** Playlist locale pour une humeur (sans appel réseau) */
+/** Playlist R2 pour une humeur */
 export function getLocalPlaylistByMood(rawMood: string): {
   mood: MoodKey;
   playlist: MusicTrack[];
 } {
   const mood = normalizeMood(rawMood);
   const entries = PLAYLIST_MANIFEST[mood] ?? [];
-  const playlist = entries
-    .map((entry) => buildTrack(mood, entry))
-    .filter((track): track is MusicTrack => track != null);
-
+  const playlist = entries.map((entry) => buildTrack(mood, entry));
   return { mood, playlist };
 }
 

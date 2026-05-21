@@ -80,15 +80,15 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const asset = currentTrack?.localAsset;
-    if (!asset || playRequestId === 0) return;
+    const source = currentTrack?.localAsset ?? (currentTrack?.url ? { uri: currentTrack.url } : null);
+    if (!source || playRequestId === 0) return;
 
     const generation = ++loadGenerationRef.current;
 
     const loadAndPlay = async () => {
       try {
         player.pause();
-        player.replace(asset);
+        player.replace(source);
         if (generation !== loadGenerationRef.current) return;
         player.play();
       } catch {
@@ -144,23 +144,23 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const togglePlayPause = useCallback(() => {
-    if (!currentTrack?.localAsset) return;
+    if (!currentTrack?.localAsset && !currentTrack?.url) return;
     if (status.playing) {
       player.pause();
     } else {
       player.play();
     }
-  }, [currentTrack?.localAsset, status.playing, player]);
+  }, [currentTrack?.localAsset, currentTrack?.url, status.playing, player]);
 
   const duration = status.duration > 0 ? status.duration : 0;
 
   const seekTo = useCallback(
     (seconds: number) => {
-      if (!currentTrack?.localAsset || duration <= 0) return;
+      if ((!currentTrack?.localAsset && !currentTrack?.url) || duration <= 0) return;
       const clamped = Math.max(0, Math.min(seconds, duration));
       player.seekTo(clamped);
     },
-    [currentTrack?.localAsset, duration, player]
+    [currentTrack?.localAsset, currentTrack?.url, duration, player]
   );
   const position = status.currentTime ?? 0;
   const playbackProgress = duration > 0 ? Math.min(position / duration, 1) : 0;
@@ -187,7 +187,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       toggleShuffle,
       togglePlayPause,
       seekTo,
-      canPlayCurrent: currentTrack?.localAsset != null,
+      canPlayCurrent: !!(currentTrack?.localAsset || currentTrack?.url),
       playbackProgress,
       playbackPosition: position,
       playbackDuration: duration,
