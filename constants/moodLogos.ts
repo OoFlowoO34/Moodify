@@ -1,5 +1,5 @@
 import type { ImageSourcePropType } from 'react-native';
-import type { MoodKey } from '@/assets/audio/manifest';
+import type { MoodKey } from '@/services/mood/localPlaylistService';
 
 export const MOOD_LOGO_SOURCES: Record<MoodKey, ImageSourcePropType> = {
   happy: require('@/assets/images/moodify_logo_happy.png'),

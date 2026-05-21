@@ -75,7 +75,7 @@ export default function App() {
     setMusicList([]);
     setCurrentTrack(null);
 
-    const { mood, playlist } = getLocalPlaylistByMood(humor);
+    const { mood, playlist } = await getLocalPlaylistByMood(humor);
     setSelectedMood(mood);
     setMusicList(playlist);
     if (playlist.length > 0) {
@@ -97,7 +97,7 @@ export default function App() {
       if (!photo?.uri) return;
 
       const apiResponse = await sendPhoto(photo.uri);
-      const { mood, playlist } = resolvePlaylistFromApiResponse(apiResponse);
+      const { mood, playlist } = await resolvePlaylistFromApiResponse(apiResponse);
       setSelectedMood(mood);
       setMusicList(playlist);
       if (playlist.length > 0) {
@@ -123,7 +123,7 @@ export default function App() {
         setMusicList([]);
         router.push('/(tabs)/listPage');
         const apiResponse = await sendPhoto(image.uri);
-        const { mood, playlist } = resolvePlaylistFromApiResponse(apiResponse);
+        const { mood, playlist } = await resolvePlaylistFromApiResponse(apiResponse);
         setSelectedMood(mood);
         setMusicList(playlist);
         if (playlist.length > 0) {
