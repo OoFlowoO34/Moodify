@@ -1,12 +1,18 @@
 import NavBar from '@/components/NavBar';
+import { MOOD_LOGO_SOURCES } from '@/constants/moodLogos';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useState, useRef, useEffect } from 'react';
 import {
-  Button, StyleSheet, Text, TouchableOpacity, View, Alert, Image,
+  Button, StyleSheet, Text, TouchableOpacity, View, Image,
   Animated,
 } from 'react-native';
-import { formatPlaylistResponse, getMusicListByMood, sendPhoto } from "@/services/mood/moodService";
+import { sendPhoto } from '@/services/mood/moodService';
+import {
+  getLocalPlaylistByMood,
+  resolvePlaylistFromApiResponse,
+} from '@/services/mood/localPlaylistService';
 import { useMusicContext } from '@/contexts/MusicContext';
+import { useFeedback } from '@/contexts/FeedbackContext';
 import * as MediaLibrary from 'expo-media-library';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -25,7 +31,9 @@ export default function App() {
   const [showHumor, setShowHumor] = useState(false);
   const [humorSelected, setHumorSelected] = useState('');
   const cameraRef = useRef<CameraView>(null);
-  const { setMusicList, setSelectedMood, setIsLoading } = useMusicContext();
+  const { setMusicList, setSelectedMood, setIsLoading, setCurrentTrack, playTrack } =
+    useMusicContext();
+  const { showError } = useFeedback();
 
   // Breathing animation for capture ring
   const breathAnim = useRef(new Animated.Value(0)).current;
@@ -64,26 +72,24 @@ export default function App() {
     router.push('/(tabs)/listPage');
     setHumorSelected(humor);
     setShowHumor(false);
-    setSelectedMood(humor);
     setIsLoading(true);
     setMusicList([]);
-    try {
-      const musicListByMood = await getMusicListByMood(humor);
-      const formattedResponse = formatPlaylistResponse(musicListByMood);
-      setSelectedMood(formattedResponse.humor ?? humor);
-      setMusicList(formattedResponse.playlist);
-    } catch (error) {
-      setMusicList([]);
-      Alert.alert('Erreur', 'Impossible de charger la musique');
-    } finally {
-      setIsLoading(false);
+    setCurrentTrack(null);
+
+    const { mood, playlist } = getLocalPlaylistByMood(humor);
+    setSelectedMood(mood);
+    setMusicList(playlist);
+    if (playlist.length > 0) {
+      playTrack(playlist[0]);
     }
+    setIsLoading(false);
   }
 
   async function takePicture() {
     setIsLoading(true);
     router.push('/(tabs)/listPage');
     setMusicList([]);
+    setCurrentTrack(null);
     if (cameraRef.current) {
       try {
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.8, base64: true });
@@ -93,20 +99,25 @@ export default function App() {
             const asset = await MediaLibrary.createAssetAsync(photo.uri);
             await MediaLibrary.createAlbumAsync('Moodify', asset, false);
           }
-          const musicListByPicture = await sendPhoto(photo.uri);
-          const formattedResponse = formatPlaylistResponse(musicListByPicture);
-          setSelectedMood(formattedResponse.humor || "neutral");
-          setMusicList(formattedResponse.playlist);
-          setIsLoading(false);
+          const apiResponse = await sendPhoto(photo.uri);
+          const { mood, playlist } = resolvePlaylistFromApiResponse(apiResponse);
+          setSelectedMood(mood);
+          setMusicList(playlist);
+          if (playlist.length > 0) {
+            playTrack(playlist[0]);
+          }
         }
-      } catch (error) {
-        Alert.alert('Erreur', 'Impossible de prendre la photo');
+      } catch {
+        showError(new Error('Photo'), 'generic');
+      } finally {
+        setIsLoading(false);
       }
     }
   }
 
   async function pickImageFromGallery() {
     setIsLoading(true);
+    setCurrentTrack(null);
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -116,14 +127,18 @@ export default function App() {
         const image = result.assets[0];
         setMusicList([]);
         router.push('/(tabs)/listPage');
-        const musicListByPicture = await sendPhoto(image.uri);
-        const formattedResponse = formatPlaylistResponse(musicListByPicture);
-        setSelectedMood(formattedResponse.humor || "neutral");
-        setMusicList(formattedResponse.playlist);
-        setIsLoading(false);
+        const apiResponse = await sendPhoto(image.uri);
+        const { mood, playlist } = resolvePlaylistFromApiResponse(apiResponse);
+        setSelectedMood(mood);
+        setMusicList(playlist);
+        if (playlist.length > 0) {
+          playTrack(playlist[0]);
+        }
       }
-    } catch (error) {
-      Alert.alert('Erreur', 'Impossible de sélectionner la photo');
+    } catch {
+      showError(new Error('Galerie'), 'generic');
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -140,25 +155,11 @@ export default function App() {
             <Ionicons name="close" size={20} color={TEXT} />
           </TouchableOpacity>
 
-          <View style={styles.statusChip}>
-            <Text style={styles.statusChipText}>FACE · DÉTECTÉ</Text>
-          </View>
-
           <TouchableOpacity style={styles.glassButton} onPress={toggleCameraFacing}>
             <Ionicons name="camera-reverse" size={20} color={TEXT} />
           </TouchableOpacity>
         </View>
 
-        {/* Framing corners */}
-        <View style={styles.framingArea} pointerEvents="none">
-          <View style={[styles.corner, styles.cornerTL]} />
-          <View style={[styles.corner, styles.cornerTR]} />
-          <View style={[styles.corner, styles.cornerBL]} />
-          <View style={[styles.corner, styles.cornerBR]} />
-        </View>
-
-        {/* Instructional text */}
-        <Text style={styles.instructionText}>Regarde l'objectif.</Text>
 
         {/* Humor modal */}
         {showHumor && (
@@ -178,17 +179,19 @@ export default function App() {
               <Text style={styles.humorTitle}>Sélectionnez votre humeur</Text>
               <View style={styles.humorGrid}>
                 {[
-                  { key: 'Happy', label: 'Joyeux', icon: 'sunny' as const },
-                  { key: 'sad', label: 'Mélancolique', icon: 'rainy' as const },
-                  { key: 'neutral', label: 'Serein', icon: 'partly-sunny' as const },
+                  { key: 'Happy', label: 'Joyeux', icon: MOOD_LOGO_SOURCES.happy },
+                  { key: 'sad', label: 'Mélancolique', icon: MOOD_LOGO_SOURCES.sad },
+                  { key: 'neutral', label: 'Serein', icon: MOOD_LOGO_SOURCES.neutral },
                 ].map((item) => (
                   <TouchableOpacity
                     key={item.key}
                     style={styles.humorItem}
                     onPress={() => handleHumorSelection(item.key)}
                   >
-                    <Ionicons name={item.icon} size={28} color={ACCENT} />
-                    <Text style={styles.humorLabel}>{item.label}</Text>
+                    <Image source={item.icon} style={styles.humorIcon} resizeMode="contain" />
+                    <Text style={styles.humorLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+                      {item.label}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -464,17 +467,22 @@ const styles = StyleSheet.create({
   },
   humorItem: {
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 20,
+    gap: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 14,
     borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
     borderColor: BORDER_S,
     flex: 1,
+    minWidth: 0,
+  },
+  humorIcon: {
+    width: 44,
+    height: 44,
   },
   humorLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: TEXT,
     fontWeight: '500',
     textAlign: 'center',

@@ -6,6 +6,8 @@ import {
 import { useMusicContext, MusicTrack } from '@/contexts/MusicContext';
 import NavBar from '@/components/NavBar';
 import MusicPlayer from '@/components/MusicPlayer';
+import { TrackArtwork } from '@/components/TrackArtwork';
+import { MoodWatermark } from '@/components/MoodWatermark';
 import { Ionicons } from '@expo/vector-icons';
 
 const BG = '#0D0D0F';
@@ -26,7 +28,16 @@ const MOOD_LABELS: Record<string, { fr: string; copy: string }> = {
 };
 
 export default function ListPageScreen() {
-  const { musicList, selectedMood, isLoading, setCurrentTrack } = useMusicContext();
+  const {
+    musicList,
+    selectedMood,
+    isLoading,
+    currentTrack,
+    shuffleEnabled,
+    playTrack,
+    playRandom,
+    toggleShuffle,
+  } = useMusicContext();
 
   const skeletonOpacity = useRef(new Animated.Value(0.3)).current;
 
@@ -48,28 +59,32 @@ export default function ListPageScreen() {
 
   const mood = selectedMood ? MOOD_LABELS[selectedMood] : null;
   const moodLabel = mood?.fr ?? selectedMood ?? 'Humeur';
-  const moodCopy = mood?.copy ?? '8 morceaux sélectionnés pour toi.';
+  const moodCopy = mood?.copy ?? 'Morceaux sélectionnés pour toi.';
 
   const renderTrack = ({ item, index }: { item: MusicTrack; index: number }) => {
-    const isFirst = index === 0;
+    const isActive = currentTrack?.id === item.id;
     return (
       <TouchableOpacity
-        style={[styles.trackItem, isFirst && styles.trackItemActive]}
-        onPress={() => setCurrentTrack(item)}
+        style={[styles.trackItem, isActive && styles.trackItemActive]}
+        onPress={() => playTrack(item)}
         activeOpacity={0.7}
       >
-        {/* Album art placeholder */}
-        <View style={styles.albumArt}>
-          <Ionicons name="musical-note" size={16} color={isFirst ? ACCENT : TEXT_MUT} />
-        </View>
+        <TrackArtwork
+          coverAsset={item.coverAsset}
+          size={48}
+          borderRadius={10}
+          active={isActive}
+        />
 
         {/* Track info */}
         <View style={styles.trackInfo}>
           <Text style={styles.trackTitle} numberOfLines={1}>
             {item.titre}
-            {isFirst && <Text style={styles.nowPlayingDot}>  ● en cours</Text>}
+            {isActive && <Text style={styles.nowPlayingDot}>  ● en cours</Text>}
           </Text>
-          <Text style={styles.trackArtist} numberOfLines={1}>{item.artiste}</Text>
+          {!!item.artiste?.trim() && (
+            <Text style={styles.trackArtist} numberOfLines={1}>{item.artiste}</Text>
+          )}
         </View>
 
         <Ionicons name="ellipsis-vertical" size={18} color={TEXT_DIM} />
@@ -106,15 +121,27 @@ export default function ListPageScreen() {
       {/* Play-all row */}
       {!isLoading && musicList.length > 0 && (
         <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.playAllButton} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={styles.playAllButton}
+            activeOpacity={0.85}
+            onPress={playRandom}
+          >
             <Ionicons name="play" size={18} color="#0A0B33" />
             <Text style={styles.playAllText}>Lecture aléatoire</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="heart-outline" size={20} color={TEXT} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="shuffle" size={20} color={TEXT} />
+          <TouchableOpacity
+            style={[styles.iconButton, shuffleEnabled && styles.iconButtonActive]}
+            onPress={toggleShuffle}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="shuffle"
+              size={20}
+              color={shuffleEnabled ? '#0A0B33' : TEXT}
+            />
           </TouchableOpacity>
         </View>
       )}
@@ -125,12 +152,15 @@ export default function ListPageScreen() {
 
   return (
     <View style={styles.container}>
+      {selectedMood ? <MoodWatermark mood={selectedMood} corner="top-right" /> : null}
+
       {/* Mood wash gradient (simulated with a View) */}
       <View style={styles.moodWash} />
 
       <FlatList
+        style={styles.list}
         data={isLoading ? (Array(7).fill(null) as any[]) : musicList}
-        keyExtractor={(item, index) => isLoading ? `sk-${index}` : `${item?.url ?? index}-${index}`}
+        keyExtractor={(item, index) => isLoading ? `sk-${index}` : item?.id ?? `track-${index}`}
         ListHeaderComponent={<ListHeader />}
         contentContainerStyle={styles.scrollContent}
         renderItem={isLoading ? renderSkeleton : renderTrack}
@@ -141,7 +171,7 @@ export default function ListPageScreen() {
               <Ionicons name="musical-notes-outline" size={48} color={TEXT_DIM} />
               <Text style={styles.emptyText}>
                 {selectedMood
-                  ? `Aucune musique pour "${selectedMood}"`
+                  ? `Aucun morceau pour « ${moodLabel} ». Ajoutez des MP3 dans assets/audio/ (voir README).`
                   : 'Allez sur l\'onglet Caméra pour détecter votre humeur'}
               </Text>
             </View>
@@ -164,6 +194,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: BG,
+    overflow: 'hidden',
+  },
+  list: {
+    flex: 1,
+    zIndex: 1,
   },
   moodWash: {
     position: 'absolute',
@@ -172,6 +207,7 @@ const styles = StyleSheet.create({
     right: 0,
     height: 380,
     backgroundColor: 'rgba(0,240,240,0.10)',
+    zIndex: 0,
   },
   scrollContent: {
     paddingBottom: 210,
@@ -251,6 +287,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  iconButtonActive: {
+    backgroundColor: ACCENT,
+    borderColor: ACCENT,
+  },
   sectionLabel: {
     fontSize: 11,
     letterSpacing: 2,
@@ -274,16 +314,6 @@ const styles = StyleSheet.create({
   trackItemActive: {
     backgroundColor: SURF,
     borderColor: BORDER,
-  },
-  albumArt: {
-    width: 48,
-    height: 48,
-    borderRadius: 10,
-    backgroundColor: 'rgba(0,240,240,0.08)',
-    borderWidth: 1,
-    borderColor: BORDER_S,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   trackInfo: {
     flex: 1,
