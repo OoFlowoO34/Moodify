@@ -1,95 +1,187 @@
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert, TextInput,Image } from "react-native";
+import React from "react";
+import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
 import { router } from "expo-router";
-import { authService } from "@/services/auth/authService";
+import { CircularWaveform } from "@/components/CircularWaveform";
+
+const BG = '#0D0D0F';
+const ACCENT = '#00F0F0';
+const TEXT = '#FAFAFA';
+const TEXT_MUT = 'rgba(255,255,255,0.60)';
+const TEXT_DIM = 'rgba(255,255,255,0.40)';
+const BORDER_S = 'rgba(255,255,255,0.06)';
 
 const EntryScreen = () => {
-
   return (
     <View style={styles.container}>
-      <Image 
-        source={require('@/assets/images/sign-logo.png')} 
-        style={styles.logo}
-        resizeMode="contain"
-      />
       
-      <Text style={styles.title}>Moodify</Text>
-
-      <TouchableOpacity 
-        onPress={() => router.push("/(auth)/signup")}
-        style={styles.loginButton}
-      >
-
-      <Text style={styles.loginText}>
-        Créer un compte
-      </Text>
-
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => router.push("/(auth)/forgottenPassword")}>
-        <Text style={styles.smallWhiteText}>Mot de passe oublié?</Text>
-      </TouchableOpacity>    
-      <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
-        <Text style={styles.whiteText}>Login</Text>
-      </TouchableOpacity>    
+      <View style={styles.logoAndCircleContainer}>
+        <View style={styles.heroVisual}>
+          <CircularWaveform />
+          <View style={styles.largeTealCircle}>
+            <View style={styles.glowBg} />
+            <Image
+              source={require('@/assets/images/moodify_logo.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </View>
+        </View>
       </View>
+
+      {/* Headline (descendue pour ne pas chevaucher le cercle) */}
+      <View style={styles.heroText}>
+        <Text style={styles.title}>
+          Ta journée en{'\n'}
+          <Text style={styles.titleAccent}>fréquence.</Text>
+        </Text>
+        <Text style={styles.subtitle}>
+          Capture ton humeur.{'\n'}Moodify écrit la bande-son.
+        </Text>
+      </View>
+
+      {/* CTAs */}
+      <View style={styles.ctaContainer}>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => router.push("/(auth)/signup")}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.primaryButtonText}>Commencer</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.ghostButton}
+          onPress={() => router.push("/(auth)/login")}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.ghostButtonText}>J'ai déjà un compte</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Version label */}
+      <Text style={styles.version}>MOODIFY · V2.4</Text>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#111111",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: BG,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#00F0F0",
-    marginBottom: 40,
+  logoAndCircleContainer: {
+    position: 'absolute',
+    top: 40,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 1,
   },
-  input: {
-    backgroundColor: "#fff",
-    borderRadius: 30,
-    width: "80%",
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    marginBottom: 15,
+  heroVisual: {
+    width: 340,
+    height: 340,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
   },
-  loginButton: {
-    backgroundColor: "#00F0F0",
-    borderRadius: 30,
-    paddingVertical: 15,
-    width: "80%",
+  largeTealCircle: {
+    width: 280,                // Diamètre du grand cercle bleu
+    height: 280,
+    borderRadius: 140,         // Parfaitement rond (280 / 2)
+    backgroundColor: '#072426', // Fond bleu sarcelle foncé / sombre
+    overflow: 'hidden',        // Masque tout ce qui dépasse (effet filtre)
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 240, 240, 0.15)',
+    zIndex: 2,
   },
-  loginText: {
-    color: "#000",
-    fontWeight: "bold",
-    fontSize: 16,
-    textAlign: "center",
-  },
-  whiteText: {
-    fontFamily: "roboto",
-    color: "#fff",
-    fontSize: 16,
-    textAlign: "center",
-    marginTop: 10,
-  },
-  smallWhiteText: {
-    fontFamily: "roboto",
-    color: "#fff",
-    fontSize: 12,
-    textAlign: "center",
-    marginTop: 10,
+  glowBg: {
+    position: 'absolute',
+    backgroundColor: ACCENT,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   logo: {
-    position: "absolute",
-    top: 40, // tu peux ajuster selon la hauteur du status bar
-    alignSelf: "center",
-
-    resizeMode: "contain",
+    width: '85%',              // L'image occupe 85% du cercle pour laisser une marge clean
+    height: '85%',
+    zIndex: 2,
   },
-  
+  heroText: {
+    position: 'absolute',
+    top: 400,                  // Ajusté pour s'intercaler parfaitement sous le grand cercle
+    left: 32,
+    right: 32,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  title: {
+    fontSize: 42,
+    fontWeight: '600',
+    color: TEXT,
+    textAlign: 'center',
+    lineHeight: 48,
+    letterSpacing: -1,
+    marginBottom: 18,
+  },
+  titleAccent: {
+    color: ACCENT,
+    fontStyle: 'italic',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: TEXT_MUT,
+    textAlign: 'center',
+    lineHeight: 24,
+    paddingHorizontal: 12,
+  },
+  ctaContainer: {
+    position: 'absolute',
+    left: 24,
+    right: 24,
+    bottom: 72,
+    gap: 12,
+    zIndex: 10,
+  },
+  primaryButton: {
+    height: 56,
+    borderRadius: 999,
+    backgroundColor: ACCENT,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0A0B33',
+    letterSpacing: -0.2,
+  },
+  ghostButton: {
+    height: 56,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: BORDER_S,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  ghostButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: TEXT_MUT,
+  },
+  version: {
+    position: 'absolute',
+    bottom: 30,
+    fontSize: 10,
+    letterSpacing: 3,
+    color: TEXT_DIM,
+    textTransform: 'uppercase',
+  },
 });
 
 export default EntryScreen;
