@@ -1,4 +1,4 @@
-import { StyleSheet, Image, Platform, View, Text } from 'react-native';
+import { StyleSheet, Image, Platform, View, Text, TouchableOpacity } from 'react-native';
 import { Button } from 'react-native-paper';
 import { router } from 'expo-router';
 import { authService } from '@/services/auth/authService';
@@ -59,6 +59,9 @@ export default function TabTwoScreen() {
 
   return (
     <View>
+      <TouchableOpacity onPress={() => router.replace("/(tabs)/camera")} style={styles.backButton}>
+        <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+      </TouchableOpacity>
       <Button 
         mode="outlined" 
         icon={({ color, size }) => (
@@ -125,5 +128,21 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
     textAlign: "center",
+  },
+  backButton: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#00F0F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 4,
   },
 });
