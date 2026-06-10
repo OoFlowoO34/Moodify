@@ -5,6 +5,8 @@ export type ErrorContext =
   | 'auth_signup'
   | 'auth_forgot_password'
   | 'network'
+  | 'mood_photo'
+  | 'mood_playlist'
   | 'generic';
 
 export type UserFacingMessage = {
@@ -89,6 +91,9 @@ function messageForStatus(status: number | undefined, context: ErrorContext): Us
 }
 
 function isNetworkError(error: unknown): boolean {
+  if (error instanceof TypeError && /network request failed/i.test(error.message)) {
+    return true;
+  }
   if (!axios.isAxiosError(error)) return false;
   return (
     !error.response &&
@@ -96,6 +101,28 @@ function isNetworkError(error: unknown): boolean {
       error.code === 'ECONNABORTED' ||
       error.message === 'Network Error')
   );
+}
+
+function messageForMoodApiError(error: Error): UserFacingMessage {
+  const statusMatch = error.message.match(/Mood API error (\d+)/);
+  const status = statusMatch ? Number(statusMatch[1]) : undefined;
+
+  if (status === 429) {
+    return {
+      title: 'Trop de tentatives',
+      message: 'Patientez quelques instants avant de renvoyer une photo.',
+    };
+  }
+  if (status && status >= 500) {
+    return {
+      title: 'Analyse indisponible',
+      message: 'Le service de détection d\'humeur ne répond pas. Réessayez plus tard.',
+    };
+  }
+  return {
+    title: 'Analyse impossible',
+    message: 'La photo n\'a pas pu être analysée. Réessayez avec une autre image.',
+  };
 }
 
 /** Translates any error into a safe user-facing message. Never exposes raw API messages, status codes, or library internals. */
@@ -108,10 +135,26 @@ export function getUserFacingError(
   }
 
   if (isNetworkError(error)) {
+    if (context === 'mood_photo') {
+      return {
+        title: 'Envoi impossible',
+        message: 'La photo n\'a pas pu être envoyée. Vérifiez votre connexion.',
+      };
+    }
+    if (context === 'mood_playlist') {
+      return {
+        title: 'Pas de connexion',
+        message: 'Impossible de charger la playlist. Vérifiez votre réseau.',
+      };
+    }
     return {
       title: 'Pas de connexion',
       message: 'Vérifiez votre réseau et réessayez.',
     };
+  }
+
+  if (error instanceof Error && error.message.startsWith('Mood API error')) {
+    return messageForMoodApiError(error);
   }
 
   const status = axios.isAxiosError(error) ? error.response?.status : undefined;

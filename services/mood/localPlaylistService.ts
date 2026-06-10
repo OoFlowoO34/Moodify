@@ -1,5 +1,6 @@
 import { extractId3Metadata } from '@/utils/audio/extractId3Metadata';
 import type { MusicTrack } from '@/contexts/MusicContext';
+import { UserFacingError } from '@/utils/errors/getUserFacingError';
 
 const WORKER_URL = 'https://moodify-api.florianbatt34.workers.dev';
 
@@ -26,10 +27,19 @@ function filenameFromUrl(url: string): string {
 async function fetchTracksFromWorker(mood: MoodKey): Promise<{ id: string; url: string }[]> {
   try {
     const res = await fetch(`${WORKER_URL}/?mood=${mood}`);
-    if (!res.ok) return [];
+    if (!res.ok) {
+      throw new UserFacingError(
+        'Playlist indisponible',
+        'Impossible de charger les morceaux pour cette humeur.',
+      );
+    }
     return res.json();
-  } catch {
-    return [];
+  } catch (error) {
+    if (error instanceof UserFacingError) throw error;
+    throw new UserFacingError(
+      'Pas de connexion',
+      'Impossible de charger la playlist. Vérifiez votre réseau.',
+    );
   }
 }
 

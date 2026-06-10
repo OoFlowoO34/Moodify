@@ -1,10 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useMusicContext } from '@/contexts/MusicContext';
 import { TrackArtwork } from '@/components/TrackArtwork';
 import { SeekableProgressBar } from '@/components/SeekableProgressBar';
 import { Ionicons } from '@expo/vector-icons';
-import { useFeedback, UserFacingError } from '@/contexts/FeedbackContext';
 
 const SURF = '#1A1A1F';
 const TEXT = '#FAFAFA';
@@ -29,13 +28,13 @@ const MusicPlayer: React.FC = () => {
     canPlayNext,
     togglePlayPause,
     canPlayCurrent,
+    playTrack,
     playbackProgress,
     playbackPosition,
     playbackDuration,
     didJustFinish,
     seekTo,
   } = useMusicContext();
-  const { showError } = useFeedback();
 
   const lastFinishedId = useRef<string | null>(null);
   const [scrubPosition, setScrubPosition] = useState<number | null>(null);
@@ -59,18 +58,7 @@ const MusicPlayer: React.FC = () => {
     setScrubPosition(null);
   }, [currentTrack?.id]);
 
-  const openExternalUrl = async (url: string) => {
-    try {
-      const webUrl = url.startsWith('http') ? url : url.replace('spotify:', 'https://open.spotify.com/');
-      await Linking.openURL(webUrl);
-    } catch {
-      showError(
-        new UserFacingError('Lecture impossible', 'Impossible d\'ouvrir ce lien.')
-      );
-    }
-  };
-
-  const handlePlayPress = async () => {
+  const handlePlayPress = () => {
     if (!currentTrack) return;
 
     if (canPlayCurrent) {
@@ -78,17 +66,8 @@ const MusicPlayer: React.FC = () => {
       return;
     }
 
-    if (currentTrack.url) {
-      await openExternalUrl(currentTrack.url);
-      return;
-    }
-
-    showError(
-      new UserFacingError(
-        'Morceau indisponible',
-        'Ajoutez le fichier MP3 et enregistrez-le dans assets/audio (voir README).'
-      )
-    );
+    // Relance le chargement si la piste n'est pas encore prête (ex. stream distant)
+    playTrack(currentTrack);
   };
 
   if (!currentTrack) {

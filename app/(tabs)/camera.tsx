@@ -12,7 +12,7 @@ import {
   resolvePlaylistFromApiResponse,
 } from '@/services/mood/localPlaylistService';
 import { useMusicContext } from '@/contexts/MusicContext';
-import { useFeedback } from '@/contexts/FeedbackContext';
+import { useFeedback, UserFacingError } from '@/contexts/FeedbackContext';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -28,8 +28,8 @@ export default function App() {
   const [facing, setFacing] = useState<CameraType>('front');
   const [permission, requestPermission] = useCameraPermissions();
   const [showHumor, setShowHumor] = useState(false);
-  const [humorSelected, setHumorSelected] = useState('');
   const cameraRef = useRef<CameraView>(null);
+  const isProcessingRef = useRef(false);
   const { setMusicList, setSelectedMood, setIsLoading, setCurrentTrack, playTrack } =
     useMusicContext();
   const { showError } = useFeedback();
@@ -67,74 +67,96 @@ export default function App() {
     setFacing(current => (current === 'back' ? 'front' : 'back'));
   }
 
-  async function handleHumorSelection(humor: string) {
-    router.push('/(tabs)/listPage');
-    setHumorSelected(humor);
-    setShowHumor(false);
-    setIsLoading(true);
-    setMusicList([]);
-    setCurrentTrack(null);
-
-    const { mood, playlist } = await getLocalPlaylistByMood(humor);
-    setSelectedMood(mood);
-    setMusicList(playlist);
-    if (playlist.length > 0) {
-      playTrack(playlist[0]);
-    }
-    setIsLoading(false);
-  }
-
-  async function takePicture() {
-    if (!cameraRef.current) return;
-
+  async function analyzePhoto(
+    uri: string,
+    mimeType?: string | null,
+    fileName?: string | null,
+  ) {
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
     setIsLoading(true);
     setMusicList([]);
     setCurrentTrack(null);
     router.push('/(tabs)/listPage');
 
     try {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
-      if (!photo?.uri) return;
-
-      const apiResponse = await sendPhoto(photo.uri);
-      console.log('Raw API response:', apiResponse);
+      const apiResponse = await sendPhoto(uri, { mimeType, fileName });
       const { mood, playlist } = await resolvePlaylistFromApiResponse(apiResponse);
       setSelectedMood(mood);
       setMusicList(playlist);
       if (playlist.length > 0) {
         playTrack(playlist[0]);
       }
-    } catch {
-      showError(new Error('Photo'), 'generic');
+    } catch (error) {
+      showError(error, 'mood_photo');
     } finally {
       setIsLoading(false);
+      isProcessingRef.current = false;
+    }
+  }
+
+  async function handleHumorSelection(humor: string) {
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
+    router.push('/(tabs)/listPage');
+    setShowHumor(false);
+    setIsLoading(true);
+    setMusicList([]);
+    setCurrentTrack(null);
+
+    try {
+      const { mood, playlist } = await getLocalPlaylistByMood(humor);
+      setSelectedMood(mood);
+      setMusicList(playlist);
+      if (playlist.length > 0) {
+        playTrack(playlist[0]);
+      }
+    } catch (error) {
+      showError(error, 'mood_playlist');
+    } finally {
+      setIsLoading(false);
+      isProcessingRef.current = false;
+    }
+  }
+
+  async function takePicture() {
+    if (!cameraRef.current || isProcessingRef.current) return;
+
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.8,
+        skipProcessing: true,
+      });
+      if (!photo?.uri) {
+        showError(
+          new UserFacingError(
+            'Photo impossible',
+            'La capture n\'a pas produit d\'image. Réessayez.',
+          ),
+          'mood_photo',
+        );
+        return;
+      }
+      await analyzePhoto(photo.uri, 'image/jpeg', 'photo.jpg');
+    } catch (error) {
+      showError(error, 'mood_photo');
     }
   }
 
   async function pickImageFromGallery() {
-    setIsLoading(true);
-    setCurrentTrack(null);
+    if (isProcessingRef.current) return;
+
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         quality: 0.8,
       });
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const image = result.assets[0];
-        setMusicList([]);
-        router.push('/(tabs)/listPage');
-        const apiResponse = await sendPhoto(image.uri);
-        const { mood, playlist } = await resolvePlaylistFromApiResponse(apiResponse);
-        setSelectedMood(mood);
-        setMusicList(playlist);
-        if (playlist.length > 0) {
-          playTrack(playlist[0]);
-        }
-      }
-    } catch {
-      showError(new Error('Galerie'), 'generic');
-    } finally {
-      setIsLoading(false);
+      if (result.canceled || !result.assets?.length) return;
+
+      const image = result.assets[0];
+      await analyzePhoto(image.uri, image.mimeType, image.fileName);
+    } catch (error) {
+      showError(error, 'mood_photo');
     }
   }
 
