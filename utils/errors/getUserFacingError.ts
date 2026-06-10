@@ -12,7 +12,7 @@ export type UserFacingMessage = {
   message: string;
 };
 
-/** Erreur métier déjà formulée pour l'utilisateur */
+/** Pre-formatted error that bypasses the generic error-to-message translation. */
 export class UserFacingError extends Error {
   constructor(
     public readonly userTitle: string,
@@ -98,7 +98,7 @@ function isNetworkError(error: unknown): boolean {
   );
 }
 
-/** Ne jamais exposer message API, status code ou nom de librairie à l'UI */
+/** Translates any error into a safe user-facing message. Never exposes raw API messages, status codes, or library internals. */
 export function getUserFacingError(
   error: unknown,
   context: ErrorContext = 'generic'
@@ -118,7 +118,7 @@ export function getUserFacingError(
   return messageForStatus(status, context);
 }
 
-/** Journalisation réservée au dev — évite le toast Expo sur console.error */
+/** Dev-only logging — uses console.log to avoid triggering the Expo error overlay on console.error. */
 export function logErrorForDev(scope: string, error: unknown): void {
   if (!__DEV__) return;
   const status = axios.isAxiosError(error) ? error.response?.status : undefined;

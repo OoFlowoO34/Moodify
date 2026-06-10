@@ -1,8 +1,9 @@
+import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
-import { authService } from '@/services/auth/authService';
-import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { authService } from '@/services/auth/authService';
+import { logErrorForDev } from '@/utils/errors/getUserFacingError';
 import NavBar from '@/components/NavBar';
 
 const BG = '#0D0D0F';
@@ -18,9 +19,9 @@ export default function ParamScreen() {
   const handleLogout = async () => {
     try {
       await authService.logout();
-      router.replace("/(auth)/entry");
+      router.replace('/(auth)/entry');
     } catch (error) {
-      console.error("Erreur lors de la déconnexion:", error);
+      logErrorForDev('auth.logout', error);
     }
   };
 

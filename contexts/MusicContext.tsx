@@ -9,7 +9,11 @@ import React, {
   ReactNode,
 } from 'react';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { shuffleTracks } from '@/utils/playback/shuffleQueue';
+import {
+  buildShuffledQueue,
+  pickRandomOther,
+  shuffleTracks,
+} from '@/utils/playback/shuffleQueue';
 
 export interface MusicTrack {
   id: string;
@@ -64,9 +68,33 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const [playQueue, setPlayQueue] = useState<MusicTrack[]>([]);
   const [playRequestId, setPlayRequestId] = useState(0);
 
+  const shuffleEnabledRef = useRef(shuffleEnabled);
+  const currentTrackRef = useRef(currentTrack);
+  shuffleEnabledRef.current = shuffleEnabled;
+  currentTrackRef.current = currentTrack;
+
+  const rebuildQueue = useCallback(
+    (list: MusicTrack[], shuffled: boolean, anchorId?: string | null) => {
+      if (shuffled) {
+        return buildShuffledQueue(list, anchorId);
+      }
+      return [...list];
+    },
+    []
+  );
+
+  // Nouvelle playlist : reconstruire la file en gardant le morceau en cours si possible.
   useEffect(() => {
-    setPlayQueue(shuffleEnabled ? shuffleTracks(musicList) : [...musicList]);
-  }, [musicList, shuffleEnabled]);
+    const anchor = currentTrackRef.current?.id;
+    const anchorStillValid = anchor && musicList.some((t) => t.id === anchor);
+    setPlayQueue(
+      rebuildQueue(
+        musicList,
+        shuffleEnabledRef.current,
+        anchorStillValid ? anchor : undefined
+      )
+    );
+  }, [musicList, rebuildQueue]);
 
   useEffect(() => {
     setIsPlaying(status.playing);
@@ -90,7 +118,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         if (generation !== loadGenerationRef.current) return;
         player.play();
       } catch {
-        // ignore — évite les lectures fantômes en cas d'erreur native
+        // Ignore native playback errors to prevent ghost playback side-effects
       }
     };
 
@@ -101,45 +129,72 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     };
   }, [currentTrack?.id, playRequestId, player]);
 
-  const playTrack = useCallback(
-    (track: MusicTrack) => {
-      requestPlay(track);
-    },
-    [requestPlay]
-  );
-
   const queueIndex = useMemo(() => {
     if (!currentTrack || playQueue.length === 0) return -1;
     return playQueue.findIndex((t) => t.id === currentTrack.id);
   }, [playQueue, currentTrack]);
 
   const canPlayPrevious = queueIndex > 0;
-  const canPlayNext =
-    queueIndex >= 0 && queueIndex < playQueue.length - 1;
+
+  const canPlayNext = useMemo(() => {
+    if (musicList.length <= 1) return false;
+    if (queueIndex >= 0 && queueIndex < playQueue.length - 1) return true;
+    return shuffleEnabled;
+  }, [musicList.length, queueIndex, playQueue.length, shuffleEnabled]);
 
   const playNext = useCallback(() => {
-    if (!canPlayNext) return;
-    requestPlay(playQueue[queueIndex + 1]);
-  }, [canPlayNext, playQueue, queueIndex, requestPlay]);
+    if (queueIndex >= 0 && queueIndex < playQueue.length - 1) {
+      requestPlay(playQueue[queueIndex + 1]);
+      return;
+    }
+
+    if (!shuffleEnabled || musicList.length <= 1) return;
+
+    const pick = pickRandomOther(musicList, currentTrack?.id);
+    if (!pick) return;
+
+    setPlayQueue((q) => [...q, pick]);
+    requestPlay(pick);
+  }, [queueIndex, playQueue, shuffleEnabled, musicList, currentTrack?.id, requestPlay]);
 
   const playPrevious = useCallback(() => {
     if (!canPlayPrevious) return;
     requestPlay(playQueue[queueIndex - 1]);
   }, [canPlayPrevious, playQueue, queueIndex, requestPlay]);
 
+  const playTrack = useCallback(
+    (track: MusicTrack) => {
+      if (shuffleEnabledRef.current) {
+        setPlayQueue(buildShuffledQueue(musicList, track.id));
+      }
+      requestPlay(track);
+    },
+    [musicList, requestPlay]
+  );
+
+  /** Nouvelle file mélangée + lecture du 1er morceau (relance l'aléatoire). */
   const playRandom = useCallback(() => {
     if (musicList.length === 0) return;
 
+    const queue = shuffleTracks(musicList);
+    const first = queue[0];
+
     setShuffleEnabled(true);
-    const shuffled = shuffleTracks(musicList);
-    setPlayQueue(shuffled);
-    const pick = shuffled[Math.floor(Math.random() * shuffled.length)];
-    requestPlay(pick);
-  }, [musicList, requestPlay]);
+    setPlayQueue(queue);
+    setCurrentTrack(first);
+    setPlayRequestId((n) => n + 1);
+  }, [musicList]);
 
   const toggleShuffle = useCallback(() => {
-    setShuffleEnabled((prev) => !prev);
-  }, []);
+    const enabling = !shuffleEnabledRef.current;
+    const anchor = currentTrackRef.current?.id;
+    const anchorValid =
+      anchor && musicList.some((t) => t.id === anchor) ? anchor : undefined;
+
+    setShuffleEnabled(enabling);
+    setPlayQueue(rebuildQueue(musicList, enabling, anchorValid));
+    // Ne relance pas le morceau : la lecture en cours continue.
+  }, [musicList, rebuildQueue]);
 
   const togglePlayPause = useCallback(() => {
     if (!currentTrack?.localAsset && !currentTrack?.url) return;

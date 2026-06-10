@@ -28,7 +28,6 @@ export default function RootLayout() {
     return null;
   }
 
-  // Toujours rendre un composant de navigation (Stack) en premier
   return (
     <FeedbackProvider>
       <MusicProvider>

@@ -28,7 +28,7 @@ const EntryScreen = () => {
         </View>
       </View>
 
-      {/* Headline (descendue pour ne pas chevaucher le cercle) */}
+      {/* Hero headline — positioned below the circular waveform */}
       <View style={styles.heroText}>
         <Text style={styles.title}>
           Ta journée en{'\n'}
@@ -39,7 +39,7 @@ const EntryScreen = () => {
         </Text>
       </View>
 
-      {/* CTAs */}
+      {/* Call-to-action buttons */}
       <View style={styles.ctaContainer}>
         <TouchableOpacity
           style={styles.primaryButton}
@@ -58,7 +58,7 @@ const EntryScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Version label */}
+      {/* Version stamp */}
       <Text style={styles.version}>MOODIFY · V2.4</Text>
     </View>
   );
@@ -87,11 +87,11 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   largeTealCircle: {
-    width: 280,                // Diamètre du grand cercle bleu
+    width: 280,
     height: 280,
-    borderRadius: 140,         // Parfaitement rond (280 / 2)
-    backgroundColor: '#072426', // Fond bleu sarcelle foncé / sombre
-    overflow: 'hidden',        // Masque tout ce qui dépasse (effet filtre)
+    borderRadius: 140,
+    backgroundColor: '#072426',
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -107,13 +107,13 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   logo: {
-    width: '85%',              // L'image occupe 85% du cercle pour laisser une marge clean
+    width: '85%',
     height: '85%',
     zIndex: 2,
   },
   heroText: {
     position: 'absolute',
-    top: 400,                  // Ajusté pour s'intercaler parfaitement sous le grand cercle
+    top: 400,
     left: 32,
     right: 32,
     alignItems: 'center',

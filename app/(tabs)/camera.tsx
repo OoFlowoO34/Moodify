@@ -34,7 +34,7 @@ export default function App() {
     useMusicContext();
   const { showError } = useFeedback();
 
-  // Breathing animation for capture ring
+  // Pulsing ring animation for the capture button
   const breathAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(
@@ -97,6 +97,7 @@ export default function App() {
       if (!photo?.uri) return;
 
       const apiResponse = await sendPhoto(photo.uri);
+      console.log('Raw API response:', apiResponse);
       const { mood, playlist } = await resolvePlaylistFromApiResponse(apiResponse);
       setSelectedMood(mood);
       setMusicList(playlist);
@@ -141,7 +142,7 @@ export default function App() {
     <View style={styles.container}>
       <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
 
-        {/* Vignette overlay */}
+        {/* Vignette overlay — reserved for gradient layer if needed */}
         <View style={styles.vignette} pointerEvents="none" />
 
         {/* Top chrome */}
@@ -194,7 +195,6 @@ export default function App() {
           </TouchableOpacity>
         )}
 
-        {/* Bottom controls area */}
         {/* Gallery button (left) */}
         <TouchableOpacity style={styles.sideButton} onPress={pickImageFromGallery}>
           <Ionicons name="images" size={22} color={TEXT} />
@@ -256,7 +256,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 15,
   },
-  // Overlay
   vignette: {
     position: 'absolute',
     top: 0,
@@ -265,7 +264,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: 'transparent',
   },
-  // Top chrome
   topChrome: {
     position: 'absolute',
     top: 64,
@@ -285,70 +283,6 @@ const styles = StyleSheet.create({
     borderColor: BORDER_S,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  statusChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: SURF,
-    borderWidth: 1,
-    borderColor: BORDER_S,
-  },
-  statusChipText: {
-    fontSize: 10,
-    letterSpacing: 2,
-    color: 'rgba(255,255,255,0.85)',
-    textTransform: 'uppercase',
-  },
-  // Framing corners
-  framingArea: {
-    position: 'absolute',
-    top: 160,
-    left: 48,
-    right: 48,
-    bottom: 270,
-  },
-  corner: {
-    position: 'absolute',
-    width: 28,
-    height: 28,
-    borderColor: ACCENT,
-  },
-  cornerTL: {
-    top: 0,
-    left: 0,
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-  },
-  cornerTR: {
-    top: 0,
-    right: 0,
-    borderTopWidth: 2,
-    borderRightWidth: 2,
-  },
-  cornerBL: {
-    bottom: 0,
-    left: 0,
-    borderBottomWidth: 2,
-    borderLeftWidth: 2,
-  },
-  cornerBR: {
-    bottom: 0,
-    right: 0,
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
-  },
-  // Instructional text
-  instructionText: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 250,
-    textAlign: 'center',
-    fontSize: 22,
-    fontWeight: '400',
-    color: TEXT,
-    letterSpacing: -0.3,
   },
   // Capture button
   captureWrapper: {
@@ -391,7 +325,6 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 8,
   },
-  // Side buttons
   sideButton: {
     position: 'absolute',
     bottom: 140,
@@ -409,7 +342,6 @@ const styles = StyleSheet.create({
     left: undefined,
     right: 44,
   },
-  // Humor modal
   humorOverlay: {
     position: 'absolute',
     top: 0,
