@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
   Text, StyleSheet, View, FlatList, TouchableOpacity, Animated,
 } from 'react-native';
@@ -102,51 +102,67 @@ export default function ListPageScreen() {
     </View>
   );
 
-  const ListHeader = () => (
-    <View style={styles.listHeader}>
-      {/* Mood word */}
-      <Text style={styles.moodLabel}>HUMEUR DÉTECTÉE</Text>
-      {isLoading ? (
-        <Animated.View style={[styles.skeletonMoodWord, { opacity: skeletonOpacity }]} />
-      ) : (
-        <Text style={styles.moodWord}>{moodLabel}<Text style={styles.moodWordPeriod}>.</Text></Text>
-      )}
-      {!isLoading && (
-        <Text style={styles.moodCopy}>
-          {musicList.length} morceaux · {moodCopy}
-        </Text>
-      )}
+  const listHeader = useMemo(
+    () => (
+      <View style={styles.listHeader}>
+        <Text style={styles.moodLabel}>HUMEUR DÉTECTÉE</Text>
+        {isLoading ? (
+          <Animated.View style={[styles.skeletonMoodWord, { opacity: skeletonOpacity }]} />
+        ) : (
+          <Text style={styles.moodWord}>
+            {moodLabel}
+            <Text style={styles.moodWordPeriod}>.</Text>
+          </Text>
+        )}
+        {!isLoading && (
+          <Text style={styles.moodCopy}>
+            {musicList.length} morceaux · {moodCopy}
+          </Text>
+        )}
 
-      {/* Play-all row */}
-      {!isLoading && musicList.length > 0 && (
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={styles.playAllButton}
-            activeOpacity={0.85}
-            onPress={playRandom}
-          >
-            <Ionicons name="play" size={18} color="#0A0B33" />
-            <Text style={styles.playAllText}>Lecture aléatoire</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="heart-outline" size={20} color={TEXT} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.iconButton, shuffleEnabled && styles.iconButtonActive]}
-            onPress={toggleShuffle}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name="shuffle"
-              size={20}
-              color={shuffleEnabled ? '#0A0B33' : TEXT}
-            />
-          </TouchableOpacity>
-        </View>
-      )}
+        {!isLoading && musicList.length > 0 && (
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              style={[styles.playAllButton, shuffleEnabled && styles.playAllButtonActive]}
+              activeOpacity={0.85}
+              onPress={playRandom}
+            >
+              <Ionicons name={shuffleEnabled ? 'shuffle' : 'play'} size={18} color="#0A0B33" />
+              <Text style={styles.playAllText}>
+                {shuffleEnabled ? 'Relancer l\'aléatoire' : 'Lecture aléatoire'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconButton}>
+              <Ionicons name="heart-outline" size={20} color={TEXT} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.iconButton, shuffleEnabled && styles.iconButtonActive]}
+              onPress={toggleShuffle}
+              activeOpacity={0.8}
+              accessibilityLabel={shuffleEnabled ? 'Désactiver le mode aléatoire' : 'Activer le mode aléatoire'}
+            >
+              <Ionicons
+                name="shuffle"
+                size={20}
+                color={shuffleEnabled ? '#0A0B33' : TEXT}
+              />
+            </TouchableOpacity>
+          </View>
+        )}
 
-      <Text style={styles.sectionLabel}>MORCEAUX</Text>
-    </View>
+        <Text style={styles.sectionLabel}>MORCEAUX</Text>
+      </View>
+    ),
+    [
+      isLoading,
+      skeletonOpacity,
+      moodLabel,
+      moodCopy,
+      musicList.length,
+      shuffleEnabled,
+      playRandom,
+      toggleShuffle,
+    ]
   );
 
   return (
@@ -160,7 +176,7 @@ export default function ListPageScreen() {
         style={styles.list}
         data={isLoading ? (Array(7).fill(null) as any[]) : musicList}
         keyExtractor={(item, index) => isLoading ? `sk-${index}` : item?.id ?? `track-${index}`}
-        ListHeaderComponent={<ListHeader />}
+        ListHeaderComponent={listHeader}
         contentContainerStyle={styles.scrollContent}
         renderItem={isLoading ? renderSkeleton : renderTrack}
         showsVerticalScrollIndicator={false}
@@ -178,7 +194,6 @@ export default function ListPageScreen() {
         }
       />
 
-      {/* Mini player — sits above bottom nav */}
       <View style={styles.playerContainer}>
         <MusicPlayer />
       </View>
@@ -209,7 +224,7 @@ const styles = StyleSheet.create({
     zIndex: 0,
   },
   scrollContent: {
-    paddingBottom: 210,
+    paddingBottom: 230,
     paddingTop: 60,
   },
   // List header
@@ -270,6 +285,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 16,
     elevation: 6,
+  },
+  playAllButtonActive: {
+    borderWidth: 2,
+    borderColor: '#0A0B33',
   },
   playAllText: {
     fontSize: 14,
@@ -388,10 +407,10 @@ const styles = StyleSheet.create({
   // Player + nav layout
   playerContainer: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 104,
     left: 0,
     right: 0,
-    height: 88,
+    height: 112,
     zIndex: 20,
   },
 });

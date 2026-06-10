@@ -15,7 +15,7 @@ const BORDER_S = 'rgba(255,255,255,0.06)';
 
 const ForgottenPasswordScreen = () => {
   const { showError, showSuccess } = useFeedback();
-  const [email, setEmail] = useState("dorian.figueras1207@gmail.com");
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleForgottenPassword = async () => {

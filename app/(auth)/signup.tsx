@@ -15,8 +15,8 @@ const BORDER_S = 'rgba(255,255,255,0.06)';
 
 const SignUpScreen = () => {
   const { showError } = useFeedback();
-  const [email, setEmail] = useState("test1@example.com");
-  const [password, setPassword] = useState("password1234");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleCreateAccount = async () => {

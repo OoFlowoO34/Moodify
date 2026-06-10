@@ -33,7 +33,6 @@ const MusicPlayer: React.FC = () => {
     playbackPosition,
     playbackDuration,
     didJustFinish,
-    playQueue,
     seekTo,
   } = useMusicContext();
   const { showError } = useFeedback();
@@ -125,7 +124,7 @@ const MusicPlayer: React.FC = () => {
           <TouchableOpacity
             style={[styles.skipButton, !canPlayPrevious && styles.skipButtonDisabled]}
             onPress={playPrevious}
-            disabled={!canPlayPrevious || playQueue.length < 2}
+            disabled={!canPlayPrevious}
             activeOpacity={0.7}
             accessibilityLabel="Morceau précédent"
           >
@@ -152,7 +151,7 @@ const MusicPlayer: React.FC = () => {
           <TouchableOpacity
             style={[styles.skipButton, !canPlayNext && styles.skipButtonDisabled]}
             onPress={playNext}
-            disabled={!canPlayNext || playQueue.length < 2}
+            disabled={!canPlayNext}
             activeOpacity={0.7}
             accessibilityLabel="Morceau suivant"
           >
@@ -195,13 +194,13 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 88,
+    height: 112,
     backgroundColor: SURF,
     borderTopWidth: 1,
     borderTopColor: BORDER_ACCENT,
     paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 10,
+    paddingTop: 12,
+    paddingBottom: 8,
     justifyContent: 'space-between',
     zIndex: 5,
     shadowColor: '#000',
@@ -230,7 +229,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   textContainer: {
     flex: 1,
